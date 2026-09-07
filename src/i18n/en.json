@@ -1,0 +1,68 @@
+{
+  "app": {
+    "name": "CheckMyPack",
+    "tagline": "Scan the packet. Know the truth."
+  },
+  "landing": {
+    "heroSub": "Point your phone at any food packet. CheckMyPack reads the label and tells you instantly if it is legally compliant — MRP, dates, FSSAI licence and more.",
+    "install": "Install App",
+    "installHint": "One tap • No Play Store needed",
+    "openApp": "Open App",
+    "howTitle": "How it works",
+    "step1": "Scan",
+    "step1d": "Photograph the packet's back label.",
+    "step2": "Check",
+    "step2d": "We read it and compare with LMPC 2011 + FSSAI rules.",
+    "step3": "Result",
+    "step3d": "Get PASS / VIOLATION / RETAKE with the exact rule.",
+    "featTitle": "Why people trust it",
+    "f1": "Works offline — no internet needed to scan",
+    "f2": "Hindi & English, with voice read-out",
+    "f3": "One-tap complaint to National Helpline 14404",
+    "f4": "Share the report on WhatsApp",
+    "f5": "Never falsely flags a blurry photo",
+    "legalTitle": "Built on the law",
+    "legal": "Every verdict cites the Legal Metrology (Packaged Commodities) Rules, 2011 and FSSAI labelling regulations.",
+    "officerLink": "Officer / Department login →"
+  },
+  "onboard": {
+    "skip": "Skip",
+    "next": "Next",
+    "start": "Start Now",
+    "s1t": "Welcome to CheckMyPack",
+    "s1d": "Your pocket checker for every packaged food item.",
+    "s2t": "The label hides a lot",
+    "s2d": "MRP, expiry date, FSSAI licence, net quantity — all in tiny print. Who checks it all?",
+    "s3t": "Just scan it",
+    "s3d": "Take a photo. We read the label and compare every field against the law.",
+    "s4t": "Honest by design",
+    "s4d": "Blurry photo? We ask you to retake — never blame a brand we cannot read. Every result cites the rule.",
+    "s5t": "Free & works offline",
+    "s5d": "No internet? Scan still works. Complain to 14404 in one tap.",
+    "s5b": "Start Now"
+  },
+  "auth": {
+    "google": "Continue with Google",
+    "guest": "Skip / Continue as Guest",
+    "note": "Login is optional. You can scan without an account."
+  },
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "complaint": "Complaint",
+    "profile": "Profile"
+  },
+  "home": {
+    "title": "Check a packet",
+    "subtitle": "Scan the back label of any sealed packet",
+    "scan": "Scan Packet",
+    "sample": "Try Sample Packs",
+    "sampleHint": "Demo mode — no camera needed",
+    "offline": "You are offline — scanning still works",
+    "online": "Online"
+  },
+  "common": {
+    "comingSoon": "Coming in the next build",
+    "language": "Language"
+  }
+}
