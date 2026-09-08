@@ -5,6 +5,7 @@ import { Screen, AppBar, IconButton } from '../components/UI'
 import { openCamera, stopStream } from '../lib/capture'
 import { assessVideoFrame, THRESHOLDS } from '../lib/quality'
 import { useScanRun } from '../scan/ScanRunner'
+import { isNative, nativePhoto, ensureCameraPermission } from '../lib/native'
 
 const samples = [
   { id: 'compliant', label: 'Compliant pack', hint: 'All mandatory declarations present' },
@@ -27,7 +28,12 @@ export default function Scan() {
   const [hint, setHint] = useState('Fill the frame with the label')
   const [live, setLive] = useState<'good' | 'warn'>('warn')
 
+  // On Android the OS camera app handles capture, so no web preview is needed.
   useEffect(() => {
+    if (isNative()) {
+      setReady(true)
+      return
+    }
     let cancelled = false
     openCamera()
       .then((stream) => {
@@ -60,7 +66,7 @@ export default function Scan() {
 
   // Live coaching from the same maths the gate uses.
   useEffect(() => {
-    if (!ready) return
+    if (!ready || isNative()) return
     const t = setInterval(() => {
       const v = videoRef.current
       if (!v) return
@@ -94,12 +100,35 @@ export default function Scan() {
     }
   }
 
-  const capture = () => {
+  const capture = async () => {
+    if (isNative()) {
+      const granted = await ensureCameraPermission()
+      if (!granted) {
+        setCamError('Camera permission was denied. Enable it in Settings, or pick a photo from your gallery.')
+        return
+      }
+      const blob = await nativePhoto('camera')
+      if (!blob) return
+      startFromBlob(blob)
+      nav('/app/processing')
+      return
+    }
     const v = videoRef.current
     if (!v || !ready) return
     stopStream(streamRef.current)
     startFromVideo(v)
     nav('/app/processing')
+  }
+
+  const pickFromGallery = async () => {
+    if (isNative()) {
+      const blob = await nativePhoto('gallery')
+      if (!blob) return
+      startFromBlob(blob)
+      nav('/app/processing')
+      return
+    }
+    fileRef.current?.click()
   }
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,7 +152,7 @@ export default function Scan() {
         title="Scan label"
         right={
           <>
-            {hasTorch && (
+            {hasTorch && !isNative() && (
               <IconButton tone="dark" icon={torch ? Zap : ZapOff} label={torch ? 'Turn flash off' : 'Turn flash on'} onClick={toggleTorch} />
             )}
             <IconButton tone="dark" icon={X} label="Close scanner" onClick={() => nav('/app/home')} />
@@ -132,13 +161,15 @@ export default function Scan() {
       />
 
       <div className="relative flex-1 overflow-hidden bg-ink-900">
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          autoPlay
-          className={`absolute inset-0 h-full w-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
-        />
+        {!isNative() && (
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            autoPlay
+            className={`absolute inset-0 h-full w-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
+          />
+        )}
 
         {camError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
@@ -175,7 +206,13 @@ export default function Scan() {
             live === 'good' ? 'text-brand-300' : 'text-white/70'
           }`}
         >
-          {ready ? hint : camError ? '' : 'Starting camera…'}
+          {isNative()
+            ? 'Tap the shutter to open the camera'
+            : ready
+              ? hint
+              : camError
+                ? ''
+                : 'Starting camera…'}
         </p>
       </div>
 
@@ -184,7 +221,7 @@ export default function Scan() {
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
+            onClick={pickFromGallery}
             className="grid h-12 w-12 place-items-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Upload a photo instead"
           >

@@ -1,6 +1,7 @@
 /** Share a verdict via the Web Share API, WhatsApp, or the clipboard. */
 
 import type { StoredScan } from '../store/app'
+import { nativeShare } from './native'
 
 export function scanSummary(scan: StoredScan): string {
   const violations = scan.findings.filter((f) => !f.passed)
@@ -21,6 +22,8 @@ export function scanSummary(scan: StoredScan): string {
 
 export async function shareScan(scan: StoredScan) {
   const text = scanSummary(scan)
+  // Native share sheet first (Android), then the web equivalent.
+  if (await nativeShare('CheckMyPack report', text)) return
   if (navigator.share) {
     try {
       await navigator.share({ title: 'CheckMyPack report', text })

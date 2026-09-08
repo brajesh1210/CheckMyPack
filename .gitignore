@@ -6,3 +6,9 @@ dev-dist/
 .DS_Store
 *.log
 .vite/
+
+# Capacitor: generated web assets inside the native project
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/capacitor-cordova-android-plugins/
