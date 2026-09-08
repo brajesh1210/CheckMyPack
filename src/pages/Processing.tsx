@@ -9,7 +9,7 @@ import type { Stage } from '../lib/pipeline'
 const STAGES: { key: Stage; label: string }[] = [
   { key: 'compress', label: 'Compressing to under 500 KB' },
   { key: 'quality', label: 'Checking image quality' },
-  { key: 'ocr', label: 'Reading the label text' },
+  { key: 'read', label: 'Reading the label text' },
   { key: 'extract', label: 'Identifying declarations' },
   { key: 'barcode', label: 'Cross-checking the barcode' },
   { key: 'rules', label: 'Applying LMPC & FSSAI rules' },
@@ -35,8 +35,8 @@ export default function Processing() {
 
   const currentIndex = progress ? STAGES.findIndex((s) => s.key === progress.stage) : 0
   const idx = progress?.stage === 'done' ? STAGES.length : Math.max(0, currentIndex)
-  const ocrSub = progress?.stage === 'ocr' ? progress.progress ?? 0 : 0
-  const pct = Math.min(100, Math.round(((idx + (progress?.stage === 'ocr' ? ocrSub : 0)) / STAGES.length) * 100))
+  const ocrSub = progress?.stage === 'read' ? progress.progress ?? 0 : 0
+  const pct = Math.min(100, Math.round(((idx + (progress?.stage === 'read' ? ocrSub : 0)) / STAGES.length) * 100))
 
   if (status === 'error') {
     return (
@@ -109,7 +109,7 @@ export default function Processing() {
                 <span className={`flex-1 text-sm transition-colors duration-300 ${done ? 'text-ink-500' : active ? 'font-semibold text-brand-800' : 'text-ink-400'}`}>
                   {s.label}
                 </span>
-                {active && s.key === 'ocr' && ocrSub > 0 && (
+                {active && s.key === 'read' && ocrSub > 0 && (
                   <span className="text-xs font-semibold text-brand-700 tnum">{Math.round(ocrSub * 100)}%</span>
                 )}
               </li>

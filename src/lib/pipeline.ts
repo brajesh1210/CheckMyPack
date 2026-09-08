@@ -1,27 +1,24 @@
 /**
  * End-to-end scan pipeline.
  *
- *   capture → quality gate → compress → OCR → extract → barcode → rules
+ *   capture → quality gate → compress → read → extract → barcode → rules
  *
- * The gate can abort early with RETAKE; the rule engine is the only thing
- * that ever produces a PASS or VIOLATION.
+ * The "read" stage prefers the online vision model when it is configured and
+ * reachable, and falls back to on-device Tesseract otherwise. Either way the
+ * reader only produces text; the deterministic engine alone decides the
+ * verdict, so a result can always be traced to a statute.
  */
 
 import { assessBlob, type QualityReport } from './quality'
 import { compress } from './capture'
 import { runOcr } from './ocr'
 import { extractFields, extractionQuality, type Fields } from './extract'
+import { remoteExtract, remoteConfigured } from './remoteExtract'
 import { detectBarcode, lookupOff, crossCheck, type OffProduct } from './barcode'
 import { runEngine, type EngineResult } from './engine'
 
-export type Stage =
-  | 'quality'
-  | 'compress'
-  | 'ocr'
-  | 'extract'
-  | 'barcode'
-  | 'rules'
-  | 'done'
+export type Stage = 'compress' | 'quality' | 'read' | 'extract' | 'barcode' | 'rules' | 'done'
+export type ReaderUsed = 'gemini' | 'tesseract' | 'none'
 
 export interface PipelineProgress {
   stage: Stage
@@ -37,6 +34,7 @@ export interface ScanOutcome {
   imageHeight: number
   sizeBytes: number
   quality: QualityReport
+  reader: ReaderUsed
   ocrText: string
   ocrConfidence: number
   fields: Fields
@@ -61,12 +59,26 @@ function guessProductName(fields: Fields, off: OffProduct | null): string {
   return 'Unidentified product'
 }
 
+/** Prefer a value the remote reader found; otherwise keep the local one. */
+function mergeFields(local: Fields, remote: Fields): Fields {
+  const out: Fields = { ...local }
+  for (const [key, rv] of Object.entries(remote)) {
+    const lv = local[key]
+    if (rv.value && (!lv?.value || rv.confidence >= (lv.confidence ?? 0))) {
+      out[key] = { ...rv, box: rv.box ?? lv?.box }
+    }
+  }
+  return out
+}
+
 export async function runPipeline(
   source: Blob | HTMLVideoElement,
   onProgress: (p: PipelineProgress) => void,
-  opts: { online?: boolean } = {},
+  opts: { online?: boolean; forceLocal?: boolean } = {},
 ): Promise<ScanOutcome> {
-  // 1 ─ compress first so every later stage works on the same small image
+  const online = opts.online ?? navigator.onLine
+
+  // 1 ─ compress first so every later stage shares one small image
   onProgress({ stage: 'compress', detail: 'Compressing to under 500 KB' })
   const { blob, dataUrl, width, height } = await compress(source)
 
@@ -77,9 +89,8 @@ export async function runPipeline(
   const id = makeId()
   const createdAt = new Date().toISOString()
 
-  // Gate failure short-circuits: no extraction, no accusation.
+  // A failed gate short-circuits: nothing is read, nothing is accused.
   if (!quality.pass) {
-    const engine = runEngine({}, null, { unreliable: true })
     return {
       id,
       createdAt,
@@ -88,6 +99,7 @@ export async function runPipeline(
       imageHeight: height,
       sizeBytes: blob.size,
       quality,
+      reader: 'none',
       ocrText: '',
       ocrConfidence: 0,
       fields: {},
@@ -95,34 +107,73 @@ export async function runPipeline(
       barcode: null,
       off: null,
       crossCheck: null,
-      engine,
+      engine: runEngine({}, null, { unreliable: true }),
       productName: 'Unreadable photo',
     }
   }
 
-  // 3 ─ text extraction
-  onProgress({ stage: 'ocr', detail: 'Reading the label', progress: 0 })
-  const ocr = await runOcr(blob, (p) =>
-    onProgress({ stage: 'ocr', detail: 'Reading the label', progress: p }),
-  )
+  // 3 ─ read the label
+  let reader: ReaderUsed = 'tesseract'
+  let fields: Fields = {}
+  let category: string | null = null
+  let rawText = ''
+  let confidence = 0
 
-  // 4 ─ structure the declarations
-  onProgress({ stage: 'extract', detail: 'Identifying declarations' })
-  const { fields, category } = extractFields(ocr, width, height)
+  const useRemote = online && remoteConfigured() && !opts.forceLocal
+
+  if (useRemote) {
+    onProgress({ stage: 'read', detail: 'Reading the label' })
+    const remote = await remoteExtract(blob)
+    if (remote) {
+      reader = 'gemini'
+      fields = remote.fields
+      category = remote.category
+      rawText = remote.rawText
+      confidence = remote.legibility
+    }
+  }
+
+  if (reader !== 'gemini') {
+    // Offline, unconfigured, or the remote call failed — read on-device.
+    onProgress({ stage: 'read', detail: 'Reading the label on this device', progress: 0 })
+    const ocr = await runOcr(blob, (p) =>
+      onProgress({ stage: 'read', detail: 'Reading the label on this device', progress: p }),
+    )
+    reader = 'tesseract'
+    rawText = ocr.text
+    confidence = ocr.confidence
+
+    onProgress({ stage: 'extract', detail: 'Identifying declarations' })
+    const local = extractFields(ocr, width, height)
+    fields = local.fields
+    category = local.category
+  } else {
+    // Run the local matchers too: they contribute bounding boxes, which the
+    // remote reader cannot provide, and they corroborate what it found.
+    onProgress({ stage: 'extract', detail: 'Identifying declarations' })
+    try {
+      const ocr = await runOcr(blob)
+      const local = extractFields(ocr, width, height)
+      fields = mergeFields(local.fields, fields)
+      category = category ?? local.category
+      if (!rawText) rawText = ocr.text
+    } catch {
+      // Boxes are a nicety; losing them must not fail the scan.
+    }
+  }
+
   const exq = extractionQuality(fields)
 
-  // 5 ─ corroborate with the barcode database
+  // 4 ─ corroborate against the barcode database
   onProgress({ stage: 'barcode', detail: 'Cross-checking the barcode' })
   const barcode = await detectBarcode(blob)
   let off: OffProduct | null = null
-  if (barcode && (opts.online ?? navigator.onLine)) {
-    off = await lookupOff(barcode)
-  }
+  if (barcode && online) off = await lookupOff(barcode)
   const cross = crossCheck(off, fields.net_qty?.value ?? null)
 
-  // 6 ─ adjudicate
+  // 5 ─ adjudicate
   onProgress({ stage: 'rules', detail: 'Applying LMPC and FSSAI rules' })
-  const engine = runEngine(fields, category, { unreliable: exq.unreliable, fullText: ocr.text })
+  const engine = runEngine(fields, category, { unreliable: exq.unreliable, fullText: rawText })
 
   onProgress({ stage: 'done' })
 
@@ -134,8 +185,9 @@ export async function runPipeline(
     imageHeight: height,
     sizeBytes: blob.size,
     quality,
-    ocrText: ocr.text,
-    ocrConfidence: ocr.confidence,
+    reader,
+    ocrText: rawText,
+    ocrConfidence: confidence,
     fields,
     category,
     barcode,

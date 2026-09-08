@@ -17,6 +17,8 @@ export interface StoredScan {
   imageDataUrl: string
   place: string
   barcode: string | null
+  /** Which reader produced the fields — useful when auditing a disputed scan. */
+  reader: 'gemini' | 'tesseract' | 'none'
   synced: boolean
   findings: {
     id: string
@@ -44,6 +46,7 @@ export function toStored(o: ScanOutcome, place = 'Delhi, India'): StoredScan {
     imageDataUrl: o.imageDataUrl,
     place,
     barcode: o.barcode,
+    reader: o.reader,
     synced: false,
     findings: o.engine.findings.map((f) => ({
       id: f.id,
