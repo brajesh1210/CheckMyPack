@@ -1,55 +1,147 @@
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource/lexend/400.css';
+@import '@fontsource/lexend/500.css';
+@import '@fontsource/lexend/600.css';
+@import '@fontsource/lexend/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
+@layer base {
+  :root {
+    --shell-max: 448px;
+    --nav-h: 64px;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-ink-100 font-sans text-base text-ink-800 antialiased;
+    font-feature-settings: 'cv05' 1, 'ss01' 1;
+    text-rendering: optimizeLegibility;
+    margin: 0;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display font-semibold text-ink-900;
+    text-wrap: balance;
+  }
+
+  /* Visible, consistent focus for keyboard users only */
+  :focus-visible {
+    outline: 3px solid theme('colors.brand.500');
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  :focus:not(:focus-visible) { outline: none; }
+
+  button, [role='button'], a { touch-action: manipulation; }
+  button:not(:disabled), [role='button']:not([aria-disabled='true']) { cursor: pointer; }
+
+  /* Tabular numerals for all data readouts */
+  .tnum, table, time, output { font-variant-numeric: tabular-nums; }
+
+  ::selection { background: theme('colors.brand.100'); color: theme('colors.brand.900'); }
 }
 
-html,
-body,
-#root {
-  height: 100%;
+@layer components {
+  /* ---- App shell: phone-width column, centred on large screens ---- */
+  .shell {
+    @apply relative mx-auto flex min-h-[100dvh] w-full flex-col bg-canvas;
+    max-width: var(--shell-max);
+    box-shadow: 0 0 0 1px rgb(20 24 20 / 0.06), 0 24px 64px -24px rgb(20 24 20 / 0.18);
+  }
+
+  .shell-scroll {
+    @apply flex-1 overflow-y-auto overscroll-y-contain;
+    scrollbar-width: none;
+  }
+  .shell-scroll::-webkit-scrollbar { display: none; }
+
+  /* Content gutter — one value everywhere */
+  .gutter { @apply px-5; }
+
+  /* ---- Buttons ---- */
+  .btn {
+    @apply inline-flex min-h-[48px] select-none items-center justify-center gap-2
+           rounded-xl px-5 text-md font-semibold transition-all duration-200 ease-out
+           active:scale-[0.975] disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-primary { @apply btn bg-brand-500 text-white shadow-sm hover:bg-brand-600 hover:shadow-md; }
+  .btn-secondary { @apply btn border border-ink-200 bg-surface text-ink-800 hover:border-ink-300 hover:bg-ink-50; }
+  .btn-ghost { @apply btn text-ink-600 hover:bg-ink-100 hover:text-ink-900; }
+  .btn-danger { @apply btn bg-bad-base text-white shadow-sm hover:brightness-110; }
+  .btn-sm { @apply min-h-[40px] rounded-lg px-3.5 text-sm; }
+  .btn-block { @apply w-full; }
+
+  /* ---- Surfaces ---- */
+  .card {
+    @apply rounded-xl border border-ink-200/80 bg-surface shadow-xs;
+  }
+  .card-pad { @apply card p-4; }
+  .card-interactive {
+    @apply card transition-all duration-200 ease-out
+           hover:-translate-y-0.5 hover:border-ink-300 hover:shadow-md active:translate-y-0 active:scale-[0.99];
+  }
+
+  /* ---- Labels, chips, badges ---- */
+  .eyebrow { @apply text-2xs font-semibold uppercase tracking-[0.09em] text-ink-500; }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-surface
+           px-2.5 py-1 text-xs font-medium text-ink-600;
+  }
+  .badge { @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-semibold uppercase tracking-[0.06em]; }
+  .badge-ok { @apply badge bg-ok-soft text-ok-text; }
+  .badge-warn { @apply badge bg-warn-soft text-warn-text; }
+  .badge-bad { @apply badge bg-bad-soft text-bad-text; }
+  .badge-info { @apply badge bg-info-soft text-info-text; }
+
+  /* ---- Forms ---- */
+  .field-label { @apply mb-1.5 block text-sm font-medium text-ink-700; }
+  .field {
+    @apply min-h-[48px] w-full rounded-xl border border-ink-200 bg-surface px-3.5 text-md text-ink-900
+           placeholder:text-ink-400 transition-colors duration-150
+           hover:border-ink-300 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10;
+  }
+  .field-hint { @apply mt-1.5 text-xs text-ink-500; }
+
+  /* ---- Dividers & skeletons ---- */
+  .hr { @apply h-px w-full bg-ink-200; }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-ink-100; }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+  }
+
+  /* Fine top hairline used under sticky headers */
+  .hairline { box-shadow: inset 0 -1px 0 0 rgb(20 24 20 / 0.07); }
 }
 
-body {
-  margin: 0;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: #f6f9f7;
-  color: #1b2a22;
-  -webkit-font-smoothing: antialiased;
+@layer utilities {
+  .stagger > * { animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.07s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.17s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.22s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.27s; }
+  .stagger > *:nth-child(7) { animation-delay: 0.32s; }
+  .stagger > *:nth-child(8) { animation-delay: 0.37s; }
+
+  .safe-b { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
 }
 
-/* Phone-frame on desktop, full-bleed on mobile */
-.app-shell {
-  max-width: 480px;
-  margin: 0 auto;
-  min-height: 100dvh;
-  background: #ffffff;
-  position: relative;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.landing-shell {
-  min-height: 100dvh;
-  background: linear-gradient(180deg, #ffffff 0%, #eef7f1 100%);
-}
-
-.btn {
-  @apply w-full rounded-2xl py-4 font-semibold text-lg transition active:scale-[0.98] disabled:opacity-50;
-}
-.btn-primary {
-  @apply btn bg-brand text-white shadow-soft;
-}
-.btn-ghost {
-  @apply btn bg-brand-light text-brand;
-}
-.card {
-  @apply bg-white rounded-2xl shadow-card p-4;
-}
-
-/* hide scrollbar for onboarding dots row */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
