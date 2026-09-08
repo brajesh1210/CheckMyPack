@@ -135,6 +135,9 @@
   .stagger > *:nth-child(8) { animation-delay: 0.37s; }
 
   .safe-b { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

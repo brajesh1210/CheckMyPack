@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  Languages, Volume2, WifiOff, BookOpen, ShieldCheck, Info, LogOut, ChevronRight, UserRound,
+  Languages, Volume2, WifiOff, BookOpen, ShieldCheck, Info, LogOut, ChevronRight, UserRound, Trash2,
 } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, ListRow, SectionHeader } from '../components/UI'
 import BottomNav from '../components/BottomNav'
@@ -8,7 +8,7 @@ import { useApp } from '../store/app'
 
 export default function Profile() {
   const nav = useNavigate()
-  const { user, role, lang, setLang, setUser, setRole, online, scans } = useApp()
+  const { user, role, lang, setLang, setUser, setRole, online, scans, voice, setVoice, clearScans } = useApp()
 
   const logout = () => {
     setUser(null)
@@ -89,8 +89,14 @@ export default function Profile() {
         <section className="gutter pt-7">
           <SectionHeader title="Preferences" />
           <div className="card divide-y divide-ink-200 overflow-hidden">
-            <ListRow icon={Volume2} title="Voice read-out" meta="Speak the verdict aloud after each scan" right={<Toggle on />} />
-            <ListRow icon={WifiOff} title="Offline mode" meta="Read labels on-device when there is no network" right={<Toggle on />} />
+            <ListRow
+              icon={Volume2}
+              title="Voice read-out"
+              meta="Speak the verdict aloud after each scan"
+              onClick={() => setVoice(!voice)}
+              right={<Toggle on={voice} />}
+            />
+            <ListRow icon={WifiOff} title="On-device reading" meta="Labels are always read locally; nothing is uploaded" right={<Toggle on />} />
           </div>
         </section>
 
@@ -115,7 +121,15 @@ export default function Profile() {
         </section>
 
         <div className="gutter pt-5">
-          <button type="button" onClick={logout} className="btn-secondary btn-block text-bad-text hover:bg-bad-soft hover:border-bad-soft">
+          <button
+            type="button"
+            onClick={() => { if (confirm('Delete all stored scans? This cannot be undone.')) clearScans() }}
+            className="btn-secondary btn-block"
+          >
+            <Trash2 size={17} strokeWidth={2} aria-hidden />
+            Clear scan history
+          </button>
+          <button type="button" onClick={logout} className="btn-secondary btn-block mt-2.5 text-bad-text hover:border-bad-soft hover:bg-bad-soft">
             <LogOut size={17} strokeWidth={2} aria-hidden />
             Sign out
           </button>

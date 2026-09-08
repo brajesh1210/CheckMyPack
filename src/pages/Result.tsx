@@ -1,51 +1,78 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
-  ShieldCheck, TriangleAlert, Check, X, Volume2, Share2, FileText, ChevronRight, Scale, RotateCcw,
+  ShieldCheck, TriangleAlert, Check, X, Volume2, Square, Share2, FileText, ChevronRight,
+  Scale, RotateCcw, CalendarX, Barcode, WifiOff,
 } from 'lucide-react'
-import { Screen, ScrollArea, AppBar } from '../components/UI'
+import { Screen, ScrollArea, AppBar, EmptyState } from '../components/UI'
 import { useApp } from '../store/app'
-
-/** Bounding boxes are stated as percentages of the label image. */
-const boxes = {
-  pass: [
-    { id: 'mrp', label: 'MRP', x: 8, y: 12, w: 38, h: 13, ok: true },
-    { id: 'qty', label: 'Net qty', x: 54, y: 12, w: 36, h: 13, ok: true },
-    { id: 'fssai', label: 'FSSAI', x: 8, y: 62, w: 46, h: 12, ok: true },
-    { id: 'care', label: 'Consumer care', x: 8, y: 79, w: 62, h: 12, ok: true },
-  ],
-  violation: [
-    { id: 'mrp', label: 'MRP missing', x: 8, y: 12, w: 38, h: 13, ok: false },
-    { id: 'qty', label: 'Net qty', x: 54, y: 12, w: 36, h: 13, ok: true },
-    { id: 'fssai', label: 'FSSAI', x: 8, y: 62, w: 46, h: 12, ok: true },
-    { id: 'care', label: 'Care details missing', x: 8, y: 79, w: 62, h: 12, ok: false },
-  ],
-}
+import { speak, stopSpeaking, speechSupported, verdictScript } from '../lib/speech'
+import { shareScan } from '../lib/share'
 
 export default function Result() {
   const nav = useNavigate()
-  const [params] = useSearchParams()
-  const demo = (params.get('demo') === 'violation' ? 'violation' : 'pass') as 'pass' | 'violation'
-  const scans = useApp((s) => s.scans)
+  const { id } = useParams()
+  const { scans, lastScanId, lang, voice, online } = useApp()
+  const scan = useMemo(() => scans.find((s) => s.id === (id ?? lastScanId)), [scans, id, lastScanId])
   const [focused, setFocused] = useState<string | null>(null)
   const [speaking, setSpeaking] = useState(false)
 
-  const scan = scans.find((s) => (demo === 'violation' ? s.state === 'VIOLATION' : s.state === 'PASS'))!
-  const bad = demo === 'violation'
-  const list = boxes[demo]
+  const violations = scan?.findings.filter((f) => !f.passed) ?? []
+  const bad = scan?.verdict === 'VIOLATION'
 
-  const speak = () => {
-    const text = bad
-      ? `Violation found on ${scan.product}. ${scan.issues.length} declarations are missing. Grade ${scan.grade}.`
-      : `${scan.product} is compliant. All required declarations are present. Grade ${scan.grade}.`
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(text)
-      u.onend = () => setSpeaking(false)
+  const script = scan
+    ? verdictScript(lang, {
+        productName: scan.productName,
+        verdict: scan.verdict,
+        grade: scan.grade,
+        violationCount: violations.length,
+        expired: scan.expired,
+      })
+    : ''
+
+  // Announce the verdict once, if the user has voice enabled.
+  useEffect(() => {
+    if (!scan || !voice || !speechSupported()) return
+    const t = setTimeout(() => {
       setSpeaking(true)
-      window.speechSynthesis.speak(u)
+      speak(script, lang, () => setSpeaking(false))
+    }, 450)
+    return () => {
+      clearTimeout(t)
+      stopSpeaking()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scan?.id])
+
+  const toggleSpeak = () => {
+    if (speaking) {
+      stopSpeaking()
+      setSpeaking(false)
+    } else {
+      setSpeaking(true)
+      speak(script, lang, () => setSpeaking(false))
     }
   }
+
+  if (!scan) {
+    return (
+      <Screen>
+        <AppBar back title="Scan result" />
+        <EmptyState
+          icon={FileText}
+          title="No scan to show"
+          body="This result is no longer stored on the device."
+          action={
+            <button type="button" onClick={() => nav('/app/scan')} className="btn-primary btn-sm">
+              Scan a pack
+            </button>
+          }
+        />
+      </Screen>
+    )
+  }
+
+  const boxed = scan.findings.filter((f) => f.box)
 
   return (
     <Screen>
@@ -55,29 +82,33 @@ export default function Result() {
         title="Scan result"
         subtitle={scan.id}
         right={
-          <button
-            type="button"
-            onClick={speak}
-            aria-label="Read the verdict aloud"
-            aria-pressed={speaking}
-            className={`grid h-11 w-11 place-items-center rounded-full transition-colors ${
-              speaking ? 'bg-brand-100 text-brand-700' : 'text-ink-600 hover:bg-ink-100'
-            }`}
-          >
-            <Volume2 size={19} strokeWidth={1.9} aria-hidden />
-          </button>
+          speechSupported() ? (
+            <button
+              type="button"
+              onClick={toggleSpeak}
+              aria-label={speaking ? 'Stop reading aloud' : 'Read the verdict aloud'}
+              className={`grid h-11 w-11 place-items-center rounded-full transition-colors ${
+                speaking ? 'bg-brand-100 text-brand-700' : 'text-ink-600 hover:bg-ink-100'
+              }`}
+            >
+              {speaking ? <Square size={16} strokeWidth={2.6} aria-hidden /> : <Volume2 size={19} strokeWidth={1.9} aria-hidden />}
+            </button>
+          ) : undefined
         }
       />
 
       <ScrollArea className="pb-4">
-        {/* ------------------------------------------------------- verdict */}
+        {scan.expired && (
+          <div className="flex items-center gap-2.5 bg-bad-base px-5 py-3 text-white" role="alert">
+            <CalendarX size={18} strokeWidth={2.2} className="shrink-0" aria-hidden />
+            <p className="text-sm font-semibold">This product is past its expiry date.</p>
+          </div>
+        )}
+
+        {/* verdict */}
         <div className={`gutter py-6 ${bad ? 'bg-bad-soft' : 'bg-ok-soft'}`} role="status">
           <div className="flex items-start gap-3.5">
-            <span
-              className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${
-                bad ? 'bg-bad-base' : 'bg-ok-base'
-              } text-white`}
-            >
+            <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white ${bad ? 'bg-bad-base' : 'bg-ok-base'}`}>
               {bad ? <TriangleAlert size={24} strokeWidth={2} aria-hidden /> : <ShieldCheck size={24} strokeWidth={2} aria-hidden />}
             </span>
             <div className="min-w-0 flex-1">
@@ -86,7 +117,7 @@ export default function Result() {
               </h1>
               <p className={`mt-1 text-sm leading-relaxed ${bad ? 'text-bad-text/80' : 'text-ok-text/80'}`}>
                 {bad
-                  ? `${scan.issues.length} required declarations are missing or improperly printed.`
+                  ? `${violations.length} required ${violations.length === 1 ? 'declaration is' : 'declarations are'} missing or improperly printed.`
                   : 'Every declaration required by law is present and legible.'}
               </p>
             </div>
@@ -107,85 +138,90 @@ export default function Result() {
 
           <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-current/10 pt-4">
             {[
-              ['Product', scan.product],
-              ['Scanned', scan.date.split(',')[0]],
-              ['Location', scan.place],
-              ['Checks run', `${scan.items.length} declarations`],
+              ['Product', scan.productName],
+              ['Score', `${scan.score}% of checks passed`],
+              ['Scanned', new Date(scan.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })],
+              ['Checks run', `${scan.findings.length} rules`],
             ].map(([k, v]) => (
               <div key={k} className="min-w-0">
-                <dt className={`text-2xs font-semibold uppercase tracking-[0.07em] ${bad ? 'text-bad-text/60' : 'text-ok-text/60'}`}>
-                  {k}
-                </dt>
+                <dt className={`text-2xs font-semibold uppercase tracking-[0.07em] ${bad ? 'text-bad-text/60' : 'text-ok-text/60'}`}>{k}</dt>
                 <dd className={`mt-0.5 truncate text-sm font-medium ${bad ? 'text-bad-text' : 'text-ok-text'}`}>{v}</dd>
               </div>
             ))}
           </dl>
         </div>
 
-        {/* --------------------------------------------------- annotated label */}
+        {/* annotated capture */}
         <section className="gutter pt-6">
           <h2 className="font-display text-md font-semibold">On the label</h2>
-          <p className="mt-1 text-sm text-ink-500">Tap a box to jump to its check.</p>
+          <p className="mt-1 text-sm text-ink-500">
+            {boxed.length ? 'Tap a box to see what was checked there.' : 'No text regions could be pinned to the image.'}
+          </p>
 
-          <div className="relative mt-3 aspect-[4/5] w-full overflow-hidden rounded-xl border border-ink-200 bg-gradient-to-b from-ink-100 to-ink-200">
-            {/* stylised pack rendering */}
-            <svg viewBox="0 0 100 125" className="absolute inset-0 h-full w-full" aria-hidden preserveAspectRatio="none">
-              <rect x="4" y="4" width="92" height="117" rx="4" fill="#fff" />
-              <rect x="4" y="4" width="92" height="26" rx="4" fill="#e8eae7" />
-              {[36, 42, 48, 54, 92, 98, 104, 110].map((y) => (
-                <rect key={y} x="10" y={y} width={y % 3 === 0 ? 62 : 76} height="2.6" rx="1.3" fill="#dcdfdb" />
-              ))}
-            </svg>
-
-            {list.map((b) => {
-              const active = focused === b.id
+          <div className="relative mt-3 overflow-hidden rounded-xl border border-ink-200 bg-ink-100">
+            <img src={scan.imageDataUrl} alt={`Captured label of ${scan.productName}`} className="block w-full" />
+            {boxed.map((f) => {
+              const active = focused === f.id
+              const ok = f.passed
               return (
                 <button
-                  key={b.id}
+                  key={f.id}
                   type="button"
-                  onClick={() => setFocused(active ? null : b.id)}
+                  onClick={() => setFocused(active ? null : f.id)}
                   aria-pressed={active}
-                  aria-label={`${b.label}: ${b.ok ? 'passes' : 'fails'}`}
-                  className="absolute rounded-md border-2 transition-all duration-200 ease-out"
+                  aria-label={`${f.label}: ${ok ? 'passes' : 'fails'}`}
+                  className="absolute rounded-md border-2 transition-all duration-200"
                   style={{
-                    left: `${b.x}%`,
-                    top: `${b.y}%`,
-                    width: `${b.w}%`,
-                    height: `${b.h}%`,
-                    borderColor: b.ok ? '#2E7D32' : '#C62828',
-                    background: active
-                      ? b.ok ? 'rgba(46,125,50,0.18)' : 'rgba(198,40,40,0.18)'
-                      : b.ok ? 'rgba(46,125,50,0.07)' : 'rgba(198,40,40,0.09)',
-                    boxShadow: active ? `0 0 0 3px ${b.ok ? 'rgba(46,125,50,0.25)' : 'rgba(198,40,40,0.25)'}` : 'none',
+                    left: `${f.box!.x}%`,
+                    top: `${f.box!.y}%`,
+                    width: `${f.box!.w}%`,
+                    height: `${f.box!.h}%`,
+                    borderColor: ok ? '#2E7D32' : '#C62828',
+                    background: active ? (ok ? 'rgba(46,125,50,0.22)' : 'rgba(198,40,40,0.22)') : 'transparent',
+                    boxShadow: active ? `0 0 0 3px ${ok ? 'rgba(46,125,50,0.3)' : 'rgba(198,40,40,0.3)'}` : 'none',
                   }}
                 >
-                  <span
-                    className="absolute -top-0.5 left-0 -translate-y-full whitespace-nowrap rounded px-1.5 py-0.5 text-[9.5px] font-semibold text-white"
-                    style={{ background: b.ok ? '#2E7D32' : '#C62828' }}
-                  >
-                    {b.label}
-                  </span>
+                  {active && (
+                    <span
+                      className="absolute -top-1 left-0 -translate-y-full whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                      style={{ background: ok ? '#2E7D32' : '#C62828' }}
+                    >
+                      {f.label}
+                    </span>
+                  )}
                 </button>
               )
             })}
           </div>
+
+          {scan.barcode && (
+            <p className="mt-2.5 flex items-center gap-2 text-xs text-ink-500">
+              <Barcode size={14} className="shrink-0 text-ink-400" aria-hidden />
+              Barcode {scan.barcode}
+              {!online && <span className="inline-flex items-center gap-1"><WifiOff size={11} aria-hidden /> not verified offline</span>}
+            </p>
+          )}
         </section>
 
-        {/* ------------------------------------------------------- violations */}
-        {bad && (
+        {/* violations */}
+        {violations.length > 0 && (
           <section className="gutter pt-7">
             <h2 className="font-display text-md font-semibold">Cited violations</h2>
             <ul className="mt-3 space-y-2.5">
-              {scan.issues.map((iss) => (
-                <li key={iss.title} className="rounded-xl border border-bad-soft bg-bad-soft/50 p-4">
+              {violations.map((v) => (
+                <li key={v.id} className="rounded-xl border border-bad-soft bg-bad-soft/50 p-4">
                   <div className="flex items-start gap-2.5">
                     <X size={15} strokeWidth={3} className="mt-1 shrink-0 text-bad-base" aria-hidden />
                     <div className="min-w-0">
-                      <h3 className="text-md font-semibold text-bad-text">{iss.title}</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-ink-600">{iss.detail}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-md font-semibold text-bad-text">{v.label}</h3>
+                        <span className={v.severity === 'critical' ? 'badge-bad' : 'badge-warn'}>{v.severity}</span>
+                      </div>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-600">{v.message}</p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{v.guidance}</p>
                       <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-surface px-2 py-1 text-xs font-medium text-ink-700">
                         <Scale size={12} strokeWidth={2} className="text-ink-400" aria-hidden />
-                        {iss.rule}
+                        {v.statute}
                       </p>
                     </div>
                   </div>
@@ -195,59 +231,52 @@ export default function Result() {
           </section>
         )}
 
-        {/* -------------------------------------------------------- checklist */}
+        {/* full checklist */}
         <section className="gutter pt-7">
-          <h2 className="font-display text-md font-semibold">Full checklist</h2>
-          <ul className="mt-3 card divide-y divide-ink-200 overflow-hidden">
-            {scan.items.map((it) => {
-              const failed = it.status === 'fail'
-              return (
-                <li key={it.label} className="flex items-center gap-3 px-4 py-3">
-                  <span
-                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${
-                      failed ? 'bg-bad-soft text-bad-base' : 'bg-ok-soft text-ok-base'
-                    }`}
-                    aria-hidden
-                  >
-                    {failed ? <X size={13} strokeWidth={3} /> : <Check size={13} strokeWidth={3} />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-ink-900">{it.label}</span>
-                    {it.rule && <span className="mt-0.5 block truncate text-xs text-ink-500">{it.rule}</span>}
-                  </span>
-                  <span className={`shrink-0 text-sm tnum ${failed ? 'font-semibold text-bad-text' : 'text-ink-600'}`}>
-                    {it.value ?? (failed ? 'Not found' : '—')}
-                  </span>
-                </li>
-              )
-            })}
+          <h2 className="font-display text-md font-semibold">All checks</h2>
+          <ul className="card mt-3 divide-y divide-ink-200 overflow-hidden">
+            {scan.findings.map((f) => (
+              <li key={f.id} className="flex items-center gap-3 px-4 py-3">
+                <span
+                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${f.passed ? 'bg-ok-soft text-ok-base' : 'bg-bad-soft text-bad-base'}`}
+                  aria-hidden
+                >
+                  {f.passed ? <Check size={13} strokeWidth={3} /> : <X size={13} strokeWidth={3} />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-ink-900">{f.label}</span>
+                  <span className="mt-0.5 block truncate text-xs text-ink-500">{f.statute}</span>
+                </span>
+                <span className={`max-w-[35%] shrink-0 truncate text-right text-sm tnum ${f.passed ? 'text-ink-600' : 'font-semibold text-bad-text'}`}>
+                  {f.value ?? (f.passed ? '—' : 'Not found')}
+                </span>
+              </li>
+            ))}
           </ul>
         </section>
 
-        {/* ---------------------------------------------------------- report */}
         <div className="gutter pt-5">
-          <button type="button" onClick={() => nav('/app/report')} className="card-interactive flex w-full items-center gap-3 p-4 text-left">
+          <button type="button" onClick={() => nav(`/app/report/${scan.id}`)} className="card-interactive flex w-full items-center gap-3 p-4 text-left">
             <FileText size={19} strokeWidth={1.9} className="shrink-0 text-ink-500" aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="block text-md font-medium text-ink-900">Detailed report</span>
-              <span className="mt-0.5 block text-xs text-ink-500">Full declaration table with a verification QR</span>
+              <span className="mt-0.5 block text-xs text-ink-500">Printable record with a verification QR</span>
             </span>
             <ChevronRight size={18} className="shrink-0 text-ink-300" aria-hidden />
           </button>
         </div>
       </ScrollArea>
 
-      {/* ------------------------------------------------------------ actions */}
       <div className="safe-b gutter flex gap-2.5 border-t border-ink-200 bg-surface py-3.5">
         <button type="button" onClick={() => nav('/app/scan')} className="btn-secondary" aria-label="Scan another pack">
           <RotateCcw size={17} strokeWidth={2} aria-hidden />
         </button>
-        <button type="button" className="btn-secondary flex-1">
+        <button type="button" onClick={() => shareScan(scan)} className="btn-secondary flex-1">
           <Share2 size={17} strokeWidth={2} aria-hidden />
           Share
         </button>
         {bad ? (
-          <button type="button" onClick={() => nav('/app/complaint')} className="btn-danger flex-1">
+          <button type="button" onClick={() => nav(`/app/complaint?scan=${scan.id}`)} className="btn-danger flex-1">
             Report it
           </button>
         ) : (

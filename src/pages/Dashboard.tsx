@@ -8,7 +8,7 @@ export default function Dashboard() {
   const nav = useNavigate()
   const { user, scans, online } = useApp()
   const total = scans.length
-  const violations = scans.filter((s) => s.state === 'VIOLATION').length
+  const violations = scans.filter((s) => s.verdict === 'VIOLATION').length
   const compliant = total - violations
   const firstName = (user?.name || 'there').split(' ')[0]
 
@@ -86,25 +86,25 @@ export default function Dashboard() {
                 <li key={s.id}>
                   <button
                     type="button"
-                    onClick={() => nav(`/app/result?demo=${s.state === 'VIOLATION' ? 'violation' : 'pass'}`)}
+                    onClick={() => nav(`/app/result/${s.id}`)}
                     className="card-interactive flex w-full items-center gap-3.5 p-3.5 text-left"
                   >
                     <span
                       className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${
-                        s.state === 'VIOLATION' ? 'bg-bad-soft text-bad-base' : 'bg-ok-soft text-ok-base'
+                        s.verdict === 'VIOLATION' ? 'bg-bad-soft text-bad-base' : 'bg-ok-soft text-ok-base'
                       }`}
                     >
-                      {s.state === 'VIOLATION' ? (
+                      {s.verdict === 'VIOLATION' ? (
                         <TriangleAlert size={19} strokeWidth={1.9} aria-hidden />
                       ) : (
                         <ShieldCheck size={19} strokeWidth={1.9} aria-hidden />
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-md font-medium text-ink-900">{s.product}</span>
-                      <span className="mt-0.5 block truncate text-xs text-ink-500 tnum">{s.date}</span>
+                      <span className="block truncate text-md font-medium text-ink-900">{s.productName}</span>
+                      <span className="mt-0.5 block truncate text-xs text-ink-500 tnum">{new Date(s.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                     </span>
-                    <StatusPill state={s.state} />
+                    <StatusPill state={s.verdict} />
                   </button>
                 </li>
               ))}

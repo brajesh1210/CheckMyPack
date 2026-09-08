@@ -1,13 +1,15 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PhoneCall, MessageCircle, Send, Check, Loader2, Building2 } from 'lucide-react'
 import { Screen, ScrollArea, AppBar } from '../components/UI'
 import BottomNav from '../components/BottomNav'
 import { useApp } from '../store/app'
 
 export default function Complaint() {
+  const [params] = useSearchParams()
   const scans = useApp((s) => s.scans)
-  const violations = scans.filter((s) => s.state === 'VIOLATION')
-  const [scanId, setScanId] = useState(violations[0]?.id ?? '')
+  const violations = scans.filter((s) => s.verdict === 'VIOLATION')
+  const [scanId, setScanId] = useState(params.get('scan') ?? violations[0]?.id ?? '')
   const [where, setWhere] = useState('')
   const [note, setNote] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'done'>('idle')
@@ -82,7 +84,7 @@ export default function Complaint() {
               {violations.length === 0 && <option value="">No violations recorded</option>}
               {violations.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.product} — {v.id}
+                  {v.productName} — {v.id}
                 </option>
               ))}
             </select>

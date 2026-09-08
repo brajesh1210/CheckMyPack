@@ -3,11 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "CheckMyPack — scan a packet, know the truth. LMPC 2011 + FSSAI label compliance (SIH26034).",
+  "description": "CheckMyPack \u2014 scan a packet, know the truth. LMPC 2011 + FSSAI label compliance (SIH26034).",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "verify": "node scripts/verify-engine.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -19,6 +20,7 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^15.0.2",
     "react-router-dom": "^6.26.2",
+    "tesseract.js": "^7.0.0",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
@@ -26,6 +28,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
+    "esbuild": "^0.28.2",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.12",
     "typescript": "^5.5.4",

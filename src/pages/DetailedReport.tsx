@@ -1,6 +1,6 @@
-import { useSearchParams } from 'react-router-dom'
-import { Download, Share2, Scale } from 'lucide-react'
-import { Screen, ScrollArea, AppBar, StatusPill } from '../components/UI'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Download, Share2, Scale, FileText } from 'lucide-react'
+import { Screen, ScrollArea, AppBar, StatusPill, EmptyState } from '../components/UI'
 import { Mark } from '../components/Brand'
 import { useApp } from '../store/app'
 
@@ -42,10 +42,22 @@ function QRBlock({ seed }: { seed: string }) {
 }
 
 export default function DetailedReport() {
-  const [params] = useSearchParams()
-  const demo = params.get('demo') === 'violation' ? 'violation' : 'pass'
-  const scans = useApp((s) => s.scans)
-  const scan = scans.find((s) => (demo === 'violation' ? s.state === 'VIOLATION' : s.state === 'PASS'))!
+  const { id } = useParams()
+  const nav = useNavigate()
+  const { scans, lastScanId } = useApp()
+  const scan = scans.find((s) => s.id === (id ?? lastScanId))
+
+  if (!scan) {
+    return (
+      <Screen>
+        <AppBar back title="Detailed report" />
+        <EmptyState icon={FileText} title="Report unavailable" body="This scan is no longer stored on the device."
+          action={<button type="button" onClick={() => nav('/app/home')} className="btn-primary btn-sm">Go home</button>} />
+      </Screen>
+    )
+  }
+
+  const violations = scan.findings.filter((f) => !f.passed)
 
   return (
     <Screen>
@@ -62,7 +74,7 @@ export default function DetailedReport() {
                 <p className="text-2xs text-ink-500">Compliance verification record</p>
               </div>
             </div>
-            <StatusPill state={scan.state} />
+            <StatusPill state={scan.verdict} />
           </div>
         </div>
 
@@ -71,8 +83,8 @@ export default function DetailedReport() {
           <dl className="card divide-y divide-ink-200 overflow-hidden">
             {[
               ['Report ID', scan.id],
-              ['Product', scan.product],
-              ['Scanned on', scan.date],
+              ['Product', scan.productName],
+              ['Scanned on', new Date(scan.createdAt).toLocaleString('en-IN')],
               ['Location', scan.place],
               ['Compliance grade', `Grade ${scan.grade}`],
               ['Rule set', 'LMPC 2011 · FSSAI · GSR 881(E)'],
@@ -98,13 +110,13 @@ export default function DetailedReport() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-200 bg-surface">
-                {scan.items.map((it) => (
-                  <tr key={it.label}>
+                {scan.findings.map((it) => (
+                  <tr key={it.id}>
                     <th scope="row" className="px-3.5 py-2.5 font-medium text-ink-800">{it.label}</th>
                     <td className="px-3.5 py-2.5 text-ink-600 tnum">{it.value ?? '—'}</td>
                     <td className="px-3.5 py-2.5 text-right">
-                      <span className={it.status === 'fail' ? 'badge-bad' : 'badge-ok'}>
-                        {it.status === 'fail' ? 'Fail' : 'Pass'}
+                      <span className={it.passed ? 'badge-ok' : 'badge-bad'}>
+                        {it.passed ? 'Pass' : 'Fail'}
                       </span>
                     </td>
                   </tr>
@@ -115,16 +127,16 @@ export default function DetailedReport() {
         </section>
 
         {/* --------------------------------------------------------- statute */}
-        {scan.issues.length > 0 && (
+        {violations.length > 0 && (
           <section className="gutter pt-7">
             <h2 className="font-display text-md font-semibold">Statutory references</h2>
             <ul className="mt-3 space-y-2">
-              {scan.issues.map((i) => (
-                <li key={i.title} className="card flex gap-3 p-3.5">
+              {violations.map((i) => (
+                <li key={i.id} className="card flex gap-3 p-3.5">
                   <Scale size={16} className="mt-0.5 shrink-0 text-ink-400" aria-hidden />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink-900">{i.rule}</p>
-                    <p className="mt-0.5 text-sm leading-relaxed text-ink-500">{i.detail}</p>
+                    <p className="text-sm font-semibold text-ink-900">{i.statute}</p>
+                    <p className="mt-0.5 text-sm leading-relaxed text-ink-500">{i.message}</p>
                   </div>
                 </li>
               ))}
