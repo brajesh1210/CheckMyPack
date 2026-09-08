@@ -93,3 +93,24 @@ export async function saveTextFile(filename: string, contents: string): Promise<
   })
   return res.uri
 }
+
+/**
+ * Listens for the OAuth deep link that Google sends back to the app.
+ *
+ * Registered once at start-up. On web this is a no-op, since the browser
+ * handles the redirect itself. Returns a teardown function.
+ */
+export async function onAuthDeepLink(
+  handler: (url: string) => void,
+): Promise<() => void> {
+  if (!isNative()) return () => {}
+  try {
+    const { App } = await import('@capacitor/app')
+    const sub = await App.addListener('appUrlOpen', ({ url }) => {
+      if (url.includes('auth-callback') || url.includes('code=')) handler(url)
+    })
+    return () => void sub.remove()
+  } catch {
+    return () => {}
+  }
+}

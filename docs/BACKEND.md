@@ -152,3 +152,105 @@ than failing.
 
 No branch of that table shows the user an error. The worst case is a slower
 scan.
+
+---
+
+# Accounts and sync
+
+## What signing in changes
+
+Nothing essential. A guest can scan, get a verdict, see history, generate a PDF
+and share it. An account only adds history that survives a reinstall, and the
+officer console.
+
+This is deliberate. Requiring a login before someone can check a packet would
+kill the use case at the shop counter.
+
+## Setting it up
+
+### 1. Run the migration
+
+```cmd
+supabase db push
+```
+
+That applies `supabase/migrations/0001_init.sql`: profiles, scans, complaints,
+row-level security, and the two officer views.
+
+### 2. Enable Google sign-in
+
+Supabase dashboard → **Authentication → Providers → Google** → enable, and paste
+a client ID and secret from the Google Cloud console.
+
+In Google Cloud → **Credentials → OAuth client → Authorised redirect URIs**, add:
+
+```
+https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback
+```
+
+Then in Supabase → **Authentication → URL Configuration → Redirect URLs**, add
+the app's deep link so the Android shell can be returned to:
+
+```
+in.checkmypack.app://auth-callback
+```
+
+### 3. Add the URL to `.env.local`
+
+```
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
+
+Rebuild afterwards — Vite bakes these in at build time.
+
+## Promoting an officer
+
+Officer access is granted manually, never self-service. In the Supabase SQL
+editor:
+
+```sql
+update public.profiles
+set role = 'officer', officer_verified = true
+where id = (select id from auth.users where email = 'officer@example.gov.in');
+```
+
+A database trigger prevents a user from setting these columns on themselves, so
+this is the only route.
+
+## How syncing behaves
+
+A scan is saved locally and shown immediately. Uploading happens afterwards in
+the background, from a queue that survives app restarts.
+
+| Situation | Behaviour |
+|---|---|
+| Signed out (guest) | Work is queued, nothing is sent. Signing in later drains the backlog. |
+| Offline | Queued. Flushed automatically when connectivity returns. |
+| Transient failure | Retried with backoff: 2s, 4s, 8s, 16s, then dropped. |
+| Row rejected (RLS, bad data) | Dropped immediately — retrying cannot help. |
+| Verdict is RETAKE | Never queued. An unreadable photo is not evidence. |
+| Backend not configured | Queue is never used; the app is purely local. |
+
+The user is never blocked on any of this and never shown a sync error.
+
+## What is uploaded, and what is not
+
+Uploaded: the verdict, grade, score, the findings with their statute
+references, image quality metrics, the barcode, and a district-level location.
+
+**Not uploaded: the photograph.** A label picture can also capture a person, a
+shop front, or a bill. Only the machine-readable evidence leaves the device.
+`scripts/verify-sync.mjs` asserts this — it fails if any field of the outgoing
+row contains the image bytes.
+
+Location is coarsened to district before it is sent. That supports a heat-map
+without recording which shop a specific person visited.
+
+## Scans are evidence
+
+The `scans` table has insert and select policies but deliberately **no update
+or delete policy**. A consumer cannot alter or withdraw a scan after filing it.
+Findings are stored alongside the verdict and the rules version, so if the rule
+engine is later corrected, historical scans can be re-adjudicated instead of
+silently carrying a wrong call forward.

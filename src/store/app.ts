@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ScanOutcome } from '../lib/pipeline'
+import { queueScan } from '../lib/sync'
+import { rulesMeta } from '../lib/engine'
 
 export type Role = 'consumer' | 'officer' | 'manufacturer' | null
 export type User = { name: string; email: string; provider: 'google' | 'gov' | 'guest' } | null
@@ -102,7 +104,12 @@ export const useApp = create<AppState>()(
       setUser: (user) => set({ user }),
       setLang: (lang) => set({ lang }),
       setVoice: (voice) => set({ voice }),
-      addScan: (s) => set((st) => ({ scans: [s, ...st.scans].slice(0, 60), lastScanId: s.id })),
+      addScan: (s) => {
+        // Local first: the user sees the result immediately whatever the
+        // network is doing. Upload is a background courtesy that may fail.
+        set((st) => ({ scans: [s, ...st.scans].slice(0, 60), lastScanId: s.id }))
+        queueScan(s, rulesMeta.version)
+      },
       removeScan: (id) => set((st) => ({ scans: st.scans.filter((x) => x.id !== id) })),
       markSynced: (ids) =>
         set((st) => ({ scans: st.scans.map((s) => (ids.includes(s.id) ? { ...s, synced: true } : s)) })),
