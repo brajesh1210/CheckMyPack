@@ -36,7 +36,18 @@ function check(name, actual, expected) {
 
 /* ------------------------------------------------ browser shims for Node */
 
-globalThis.navigator = { onLine: true }
+/**
+ * Node 21+ exposes `navigator` as a getter-only global, so a plain assignment
+ * throws. defineProperty works on every version we support.
+ */
+function setOnline(onLine) {
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { onLine },
+    configurable: true,
+    writable: true,
+  })
+}
+setOnline(true)
 
 class FakeFileReader {
   readAsDataURL(blob) {
@@ -46,7 +57,11 @@ class FakeFileReader {
     })
   }
 }
-globalThis.FileReader = FakeFileReader
+Object.defineProperty(globalThis, 'FileReader', {
+  value: FakeFileReader,
+  configurable: true,
+  writable: true,
+})
 
 const IMAGE = new Blob(['fake-jpeg-bytes'], { type: 'image/jpeg' })
 
@@ -177,12 +192,23 @@ check('endpoint is detected as configured', remoteConfigured(), true)
   })
   check('timeout falls back', await remoteExtract(IMAGE), null)
 
-  globalThis.navigator = { onLine: false }
+  setOnline(false)
   mockFetch(async () => {
     throw new Error('fetch should never be called while offline')
   })
   check('offline never calls the network', await remoteExtract(IMAGE), null)
-  globalThis.navigator = { onLine: true }
+  /**
+ * Node 21+ exposes `navigator` as a getter-only global, so a plain assignment
+ * throws. defineProperty works on every version we support.
+ */
+function setOnline(onLine) {
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { onLine },
+    configurable: true,
+    writable: true,
+  })
+}
+setOnline(true)
   console.log()
 }
 
