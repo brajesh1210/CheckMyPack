@@ -10,21 +10,53 @@
 
 @layer base {
   :root {
-    --shell-max: 448px;
+    --shell-max: 430px;
     --nav-h: 64px;
+
+    /* Semantic colours for SVG */
+    --cmp-ok: theme('colors.ok.base');
+    --cmp-ok-soft: theme('colors.ok.soft');
+    --cmp-ok-line: #ADD5B2;
+    --cmp-warn: theme('colors.warn.base');
+    --cmp-warn-soft: theme('colors.warn.soft');
+    --cmp-bad: theme('colors.bad.base');
+    --cmp-bad-soft: theme('colors.bad.soft');
+    --cmp-bad-line: #E5B4B4;
+    --cmp-ink: theme('colors.ink.900');
+    --cmp-ink-muted: theme('colors.ink.500');
+    --cmp-accent: theme('colors.accent.500');
+    --cmp-accent-soft: theme('colors.accent.100');
+    --cmp-accent-dark: theme('colors.accent.700');
+    --cmp-leaf: #81C784;
+    --cmp-amul-bg: #E2F1FF;
+    --cmp-amul-head: #1565C0;
+    --cmp-sunfeast-bg: #FFF3E0;
+    --cmp-sunfeast-head: #C62828;
+    --cmp-bikano-bg: #FFF8E1;
+    --cmp-bikano-head: #E65100;
+    --cmp-oil-bg: #FFFDE7;
+    --cmp-oil-head: #2E7D32;
+    --cmp-map-bg: #E8F2FA;
+    --cmp-map-fill: #D7E8F7;
+    --cmp-map-line: #93C5FD;
+    --cmp-map-grid: #BFDBFE;
   }
 
   html {
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   body {
-    @apply bg-ink-100 font-sans text-base text-ink-800 antialiased;
+    @apply bg-canvasWarm font-sans text-base text-ink-800 antialiased;
     font-feature-settings: 'cv05' 1, 'ss01' 1;
     text-rendering: optimizeLegibility;
     margin: 0;
-    min-height: 100dvh;
+    height: 100%;
+    overflow: hidden;
   }
 
   h1, h2, h3, h4 {
@@ -32,7 +64,6 @@
     text-wrap: balance;
   }
 
-  /* Visible, consistent focus for keyboard users only */
   :focus-visible {
     outline: 3px solid theme('colors.brand.500');
     outline-offset: 2px;
@@ -43,27 +74,45 @@
   button, [role='button'], a { touch-action: manipulation; }
   button:not(:disabled), [role='button']:not([aria-disabled='true']) { cursor: pointer; }
 
-  /* Tabular numerals for all data readouts */
   .tnum, table, time, output { font-variant-numeric: tabular-nums; }
 
   ::selection { background: theme('colors.brand.100'); color: theme('colors.brand.900'); }
 }
 
 @layer components {
-  /* ---- App shell: phone-width column, centred on large screens ---- */
+  /* Phone shell */
   .shell {
-    @apply relative mx-auto flex min-h-[100dvh] w-full flex-col bg-canvas;
+    @apply relative mx-auto flex w-full flex-col bg-canvas;
+    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    height: 100%;
+    max-height: 100%;
     max-width: var(--shell-max);
-    box-shadow: 0 0 0 1px rgb(20 24 20 / 0.06), 0 24px 64px -24px rgb(20 24 20 / 0.18);
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgb(20 24 20 / 0.08), 0 24px 64px -24px rgb(20 24 20 / 0.22);
+  }
+
+  @supports (height: 100dvh) {
+    .shell {
+      height: 100dvh;
+      max-height: 100dvh;
+    }
+  }
+
+  .shell > * {
+    flex-shrink: 0;
   }
 
   .shell-scroll {
-    @apply flex-1 overflow-y-auto overscroll-y-contain;
+    @apply overscroll-y-contain;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
   .shell-scroll::-webkit-scrollbar { display: none; }
 
-  /* Content gutter — one value everywhere */
   .gutter { @apply px-5; }
 
   /* ---- Buttons ---- */
@@ -73,15 +122,20 @@
            active:scale-[0.975] disabled:pointer-events-none disabled:opacity-40;
   }
   .btn-primary { @apply btn bg-brand-500 text-white shadow-sm hover:bg-brand-600 hover:shadow-md; }
+  .btn-accent { @apply btn bg-accent-500 text-white shadow-sm hover:bg-accent-600 hover:shadow-md; }
   .btn-secondary { @apply btn border border-ink-200 bg-surface text-ink-800 hover:border-ink-300 hover:bg-ink-50; }
   .btn-ghost { @apply btn text-ink-600 hover:bg-ink-100 hover:text-ink-900; }
   .btn-danger { @apply btn bg-bad-base text-white shadow-sm hover:brightness-110; }
-  .btn-sm { @apply min-h-[40px] rounded-lg px-3.5 text-sm; }
+  .btn-sm { @apply min-h-[44px] rounded-lg px-3.5 text-sm; }
   .btn-block { @apply w-full; }
+
+  .tap {
+    @apply -my-2.5 inline-flex min-h-[44px] items-center rounded-lg px-2;
+  }
 
   /* ---- Surfaces ---- */
   .card {
-    @apply rounded-xl border border-ink-200/80 bg-surface shadow-xs;
+    @apply rounded-2xl border border-ink-200/80 bg-surface shadow-xs;
   }
   .card-pad { @apply card p-4; }
   .card-interactive {
@@ -93,13 +147,13 @@
   .eyebrow { @apply text-2xs font-semibold uppercase tracking-[0.09em] text-ink-500; }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-surface
-           px-2.5 py-1 text-xs font-medium text-ink-600;
+           px-3 py-1.5 text-xs font-medium text-ink-600;
   }
-  .badge { @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-semibold uppercase tracking-[0.06em]; }
-  .badge-ok { @apply badge bg-ok-soft text-ok-text; }
-  .badge-warn { @apply badge bg-warn-soft text-warn-text; }
-  .badge-bad { @apply badge bg-bad-soft text-bad-text; }
-  .badge-info { @apply badge bg-info-soft text-info-text; }
+  .badge { @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.06em]; }
+  .badge-ok { @apply badge bg-ok-soft text-ok-text border border-ok-base/20; }
+  .badge-warn { @apply badge bg-warn-soft text-warn-text border border-warn-base/20; }
+  .badge-bad { @apply badge bg-bad-soft text-bad-text border border-bad-base/20; }
+  .badge-info { @apply badge bg-info-soft text-info-text border border-info-base/20; }
 
   /* ---- Forms ---- */
   .field-label { @apply mb-1.5 block text-sm font-medium text-ink-700; }
@@ -119,7 +173,6 @@
     background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
   }
 
-  /* Fine top hairline used under sticky headers */
   .hairline { box-shadow: inset 0 -1px 0 0 rgb(20 24 20 / 0.07); }
 }
 
@@ -135,6 +188,8 @@
   .stagger > *:nth-child(8) { animation-delay: 0.37s; }
 
   .safe-b { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+  .safe-t { padding-top: max(env(safe-area-inset-top), 0px); }
+  .safe-x { padding-left: max(env(safe-area-inset-left), 0px); padding-right: max(env(safe-area-inset-right), 0px); }
 
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }

@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, Shield, ArrowRight, UserCheck } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, Divider } from '../components/UI'
 import { Mark } from '../components/Brand'
 import { useApp } from '../store/app'
+import { signInWithGoogle, signInAsGuest } from '../lib/auth'
+import { backendConfigured } from '../lib/supabase'
 
 function GoogleGlyph() {
   return (
@@ -17,124 +20,180 @@ function GoogleGlyph() {
 }
 
 export default function Login() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const setUser = useApp((s) => s.setUser)
-  const [email, setEmail] = useState('')
-  const [pw, setPw] = useState('')
+  const [emailOrPhone, setEmailOrPhone] = useState('anah.sharma@example.com')
+  const [pw, setPw] = useState('password123')
   const [show, setShow] = useState(false)
-  const [busy, setBusy] = useState<string | null>(null)
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
 
-  const go = (provider: 'google' | 'gov' | 'guest', name: string) => {
-    setBusy(provider)
-    setTimeout(() => {
-      setUser({ name, email: email || `${provider}@checkmypack.in`, provider })
-      nav('/role')
-    }, 550)
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!emailOrPhone.trim()) {
+      setError(t('auth.invalidEmail'))
+      return
+    }
+    const name = emailOrPhone.includes('@') ? emailOrPhone.split('@')[0] : 'Anah Sharma'
+    setUser({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      email: emailOrPhone.includes('@') ? emailOrPhone : 'user@checkmypack.in',
+      provider: 'google',
+    })
+    nav('/role')
   }
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.includes('@')) {
-      setError('Enter a valid email address, for example name@example.com.')
-      return
-    }
-    if (pw.length < 6) {
-      setError('Your password must be at least 6 characters long.')
-      return
-    }
-    setError('')
-    go('google', email.split('@')[0])
+  const handleGovId = () => {
+    setUser({
+      name: 'Inspector R. K. Verma',
+      email: 'officer.delhi@gov.in',
+      provider: 'gov',
+    })
+    nav('/role')
+  }
+
+  const handleGuest = () => {
+    setUser(signInAsGuest().user)
+    nav('/role')
   }
 
   return (
     <Screen>
       <AppBar back onBack={() => nav('/')} border={false} />
-      <ScrollArea className="gutter pb-10">
-        <Mark size={44} className="text-brand-500" />
-        <h1 className="mt-5 font-display text-3xl tracking-[-0.025em]">Sign in</h1>
-        <p className="mt-2 text-md leading-relaxed text-ink-500">
-          Your scan history and complaints stay tied to this account.
-        </p>
+      <ScrollArea className="gutter pb-8">
+        <div className="pt-2">
+          <Mark size={44} className="text-brand-500" />
+          <h1 className="mt-4 font-display text-3xl font-bold tracking-[-0.025em] text-ink-900">
+            {t('auth.welcomeBack')}
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-ink-500">
+            {t('auth.signInSub')}
+          </p>
+        </div>
 
-        <form onSubmit={submit} className="mt-7 space-y-4" noValidate>
+        <form onSubmit={handleLogin} className="mt-6 space-y-4" noValidate>
           <div>
-            <label htmlFor="email" className="field-label">
-              Email address
+            <label htmlFor="emailOrPhone" className="field-label">
+              {t('auth.email')}
             </label>
             <input
-              id="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
+              id="emailOrPhone"
+              type="text"
+              autoComplete="username"
               className="field"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-invalid={!!error && !email.includes('@')}
+              placeholder={t('auth.emailPlaceholder')}
+              value={emailOrPhone}
+              onChange={(e) => setEmailOrPhone(e.target.value)}
+              aria-label={t('auth.email')}
             />
           </div>
 
           <div>
-            <label htmlFor="pw" className="field-label">
-              Password
+            <label htmlFor="password" className="field-label">
+              {t('auth.password')}
             </label>
             <div className="relative">
               <input
-                id="pw"
+                id="password"
                 type={show ? 'text' : 'password'}
                 autoComplete="current-password"
                 className="field pr-12"
-                placeholder="At least 6 characters"
+                placeholder={t('auth.passwordPlaceholder')}
                 value={pw}
                 onChange={(e) => setPw(e.target.value)}
+                aria-label={t('auth.password')}
               />
               <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
-                aria-label={show ? 'Hide password' : 'Show password'}
-                className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-ink-400 transition-colors hover:text-ink-700"
+                aria-label={show ? t('auth.hidePassword') : t('auth.showPassword')}
+                className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-ink-400 hover:text-ink-700"
               >
                 {show ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
               </button>
             </div>
-            <p className="field-hint">Use six characters or more.</p>
           </div>
 
-          {error && (
-            <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2.5 text-sm font-medium text-bad-text">
-              {error}
-            </p>
-          )}
+          {/* Remember me & forgot password */}
+          <div className="flex items-center justify-between pt-1">
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-ink-700">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-300 text-accent-500 focus:ring-accent-500"
+              />
+              {t('auth.rememberMe')}
+            </label>
+            <button
+              type="button"
+              onClick={() => nav('/role')}
+              className="text-xs font-semibold text-accent-600 hover:text-accent-700"
+            >
+              {t('auth.forgotPassword')}
+            </button>
+          </div>
 
-          <button type="submit" className="btn-primary btn-block" disabled={!!busy}>
-            {busy === 'google' && email ? <Loader2 size={18} className="animate-spin" aria-hidden /> : null}
-            Continue
-          </button>
+          {error && <p className="text-xs font-medium text-bad-base" role="alert">{error}</p>}
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="btn-accent btn-block min-h-[48px] rounded-xl text-md font-semibold"
+            >
+              {t('auth.login')}
+              <ArrowRight size={18} strokeWidth={2.2} aria-hidden />
+            </button>
+          </div>
         </form>
 
         <div className="my-6">
-          <Divider label="or" />
+          <Divider label={t('auth.or')} />
         </div>
 
-        <div className="space-y-2.5">
-          <button type="button" onClick={() => go('google', 'Aarav Sharma')} className="btn-secondary btn-block" disabled={!!busy}>
+        <div className="space-y-3">
+          {/* Government ID Button */}
+          <button
+            type="button"
+            onClick={handleGovId}
+            className="btn btn-block border border-ink-200 bg-surface text-ink-800 hover:border-ink-300 hover:bg-ink-50"
+          >
+            <Shield size={18} strokeWidth={2} className="text-info-base" aria-hidden />
+            {t('auth.govId')}
+          </button>
+
+          {/* Google Button */}
+          <button
+            type="button"
+            onClick={handleLogin}
+            className="btn btn-block border border-ink-200 bg-surface text-ink-800 hover:border-ink-300 hover:bg-ink-50"
+          >
             <GoogleGlyph />
-            Continue with Google
+            {t('auth.google')}
           </button>
-          <button type="button" onClick={() => go('gov', 'Insp. R. Verma')} className="btn-secondary btn-block" disabled={!!busy}>
-            <ShieldCheck size={18} strokeWidth={1.9} className="text-info-base" aria-hidden />
-            Government ID (officers)
-          </button>
-          <button type="button" onClick={() => go('guest', 'Guest')} className="btn-ghost btn-block" disabled={!!busy}>
-            Explore as guest
+
+          {/* Guest Button */}
+          <button
+            type="button"
+            onClick={handleGuest}
+            className="btn-ghost btn-block min-h-[44px] text-sm text-ink-600"
+          >
+            {t('auth.guest')}
           </button>
         </div>
 
-        <p className="mt-7 text-center text-xs leading-relaxed text-ink-400">
-          By continuing you agree that CheckMyPack is an advisory tool and its verdicts are not a
-          legal determination.
-        </p>
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-ink-500">
+          {t('auth.noAccount')}{' '}
+          <button
+            type="button"
+            onClick={() => nav('/role')}
+            className="font-semibold text-accent-600 hover:text-accent-700"
+          >
+            {t('auth.createOne')}
+          </button>
+        </div>
       </ScrollArea>
     </Screen>
   )

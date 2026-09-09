@@ -4,7 +4,7 @@ export default {
   theme: {
     // Systematic type scale — 12 / 13 / 14 / 16 / 18 / 20 / 24 / 30 / 38 / 48
     fontSize: {
-      '2xs': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.04em' }],
+      '2xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.03em' }],
       xs: ['0.75rem', { lineHeight: '1.0625rem', letterSpacing: '0.01em' }],
       sm: ['0.8125rem', { lineHeight: '1.1875rem' }],
       base: ['0.9375rem', { lineHeight: '1.5rem' }],
@@ -23,7 +23,7 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
-        // Brand — deep forest green, calm and institutional
+        // Brand — deep forest green (#2E7D32)
         brand: {
           50: '#EEF6EF',
           100: '#D6EAD8',
@@ -36,26 +36,41 @@ export default {
           800: '#163F1A',
           900: '#0F2B12',
         },
-        // Neutral — slightly warm slate, reads as paper not plastic
-        ink: {
-          50: '#F7F8F7',
-          100: '#EEF0EE',
-          200: '#E2E5E2',
-          300: '#CBD0CB',
-          400: '#9AA29A',
-          500: '#6F776F',
-          600: '#525A52',
-          700: '#3D443D',
-          800: '#272C27',
-          900: '#141814',
+        // Accent / Caramel (#A67C52)
+        accent: {
+          50: '#FAF6F0',
+          100: '#F6E7D9',
+          200: '#E8D0BA',
+          300: '#D5B293',
+          400: '#BE926D',
+          500: '#A67C52',
+          600: '#8E633C',
+          700: '#734C2C',
+          800: '#57371E',
+          900: '#3D2412',
         },
-        canvas: '#FBFAF8',
+        // Neutral — dark slate (#1F2937), secondary (#6B7280)
+        ink: {
+          50: '#F9FAFB',
+          100: '#F3F4F6',
+          200: '#E5E7EB',
+          300: '#D1D5DB',
+          400: '#9CA3AF',
+          500: '#6B7280',
+          600: '#4B5563',
+          700: '#374151',
+          800: '#1F2937',
+          900: '#111827',
+        },
+        canvas: '#FAF6F0',
+        canvasWarm: '#F6E7D9',
         surface: '#FFFFFF',
         // Semantic status
-        ok: { soft: '#E8F4E9', base: '#2E7D32', text: '#1D5322' },
-        warn: { soft: '#FDF3E3', base: '#B26B00', text: '#7A4A00' },
-        bad: { soft: '#FCEBEC', base: '#C62828', text: '#8E1B1B' },
-        info: { soft: '#E9F1FA', base: '#2F6FB0', text: '#1F4C7A' },
+        ok: { soft: '#E8F5E9', base: '#2E7D32', text: '#1B5E20' },
+        warn: { soft: '#FEF3C7', base: '#D97706', text: '#92400E' },
+        bad: { soft: '#FEE2E2', base: '#DC2626', text: '#991B1B' },
+        info: { soft: '#EFF6FF', base: '#2563EB', text: '#1E40AF' },
+        purple: { soft: '#F5F3FF', base: '#7C3AED', text: '#5B21B6' },
       },
       borderRadius: {
         sm: '0.375rem',
@@ -64,14 +79,16 @@ export default {
         lg: '0.875rem',
         xl: '1.125rem',
         '2xl': '1.5rem',
+        '3xl': '2rem',
       },
       boxShadow: {
-        // Restrained, single-source elevation scale
         xs: '0 1px 2px 0 rgb(20 24 20 / 0.05)',
         sm: '0 1px 3px 0 rgb(20 24 20 / 0.07), 0 1px 2px -1px rgb(20 24 20 / 0.05)',
         md: '0 4px 12px -2px rgb(20 24 20 / 0.08), 0 2px 4px -2px rgb(20 24 20 / 0.05)',
         lg: '0 12px 28px -6px rgb(20 24 20 / 0.12), 0 4px 8px -4px rgb(20 24 20 / 0.06)',
+        xl: '0 20px 35px -8px rgb(20 24 20 / 0.16)',
         nav: '0 -1px 0 0 rgb(20 24 20 / 0.06)',
+        card: '0 2px 8px rgba(0,0,0,0.04)',
       },
       transitionTimingFunction: {
         out: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -80,7 +97,7 @@ export default {
       keyframes: {
         'fade-up': { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'none' } },
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
-        'scan-line': { '0%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(150px)' }, '100%': { transform: 'translateY(0)' } },
+        'scan-line': { '0%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(160px)' }, '100%': { transform: 'translateY(0)' } },
         shimmer: { '100%': { transform: 'translateX(100%)' } },
         'ring-pulse': { '0%,100%': { opacity: '0.35', transform: 'scale(1)' }, '50%': { opacity: '0', transform: 'scale(1.35)' } },
       },

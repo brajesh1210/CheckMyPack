@@ -1,126 +1,140 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Check, Loader2, TriangleAlert } from 'lucide-react'
-import { Screen } from '../components/UI'
-import { Mark } from '../components/Brand'
+import { ArrowLeft, Check, Loader2 } from 'lucide-react'
+import { Screen, ScrollArea } from '../components/UI'
 import { useScanRun } from '../scan/ScanRunner'
-import type { Stage } from '../lib/pipeline'
+import { useApp } from '../store/app'
 
-const STAGES: { key: Stage; label: string }[] = [
-  { key: 'compress', label: 'Compressing to under 500 KB' },
-  { key: 'quality', label: 'Checking image quality' },
-  { key: 'ocr', label: 'Reading the label text' },
-  { key: 'extract', label: 'Identifying declarations' },
-  { key: 'barcode', label: 'Cross-checking the barcode' },
-  { key: 'rules', label: 'Applying LMPC & FSSAI rules' },
+const STAGES = [
+  { id: 1, titleKey: 'processing.stage1', subKey: 'processing.stage1Sub' },
+  { id: 2, titleKey: 'processing.stage2', subKey: 'processing.stage2Sub' },
+  { id: 3, titleKey: 'processing.stage3', subKey: 'processing.stage3Sub' },
+  { id: 4, titleKey: 'processing.stage4', subKey: 'processing.stage4Sub' },
+  { id: 5, titleKey: 'processing.stage5', subKey: 'processing.stage5Sub' },
+  { id: 6, titleKey: 'processing.stage6', subKey: 'processing.stage6Sub' },
 ]
 
 export default function Processing() {
+  const { t } = useTranslation()
   const nav = useNavigate()
-  const { status, progress, outcome, error } = useScanRun()
+  const { status, outcome } = useScanRun()
+  const [completedStep, setCompletedStep] = useState(1)
 
+  // Smooth staged progression animation
   useEffect(() => {
-    if (status === 'idle') nav('/app/scan', { replace: true })
-  }, [status, nav])
+    const intervals = [
+      setTimeout(() => setCompletedStep(2), 500),
+      setTimeout(() => setCompletedStep(3), 1100),
+      setTimeout(() => setCompletedStep(4), 1700),
+      setTimeout(() => setCompletedStep(5), 2300),
+      setTimeout(() => setCompletedStep(6), 2900),
+    ]
+    return () => intervals.forEach(clearTimeout)
+  }, [])
 
+  // Transition to Result or Retake when analysis finishes
   useEffect(() => {
-    if (status === 'done' && outcome) {
-      const t = setTimeout(
-        () => nav(outcome.engine.verdict === 'RETAKE' ? '/app/retake' : '/app/result', { replace: true }),
-        340,
-      )
-      return () => clearTimeout(t)
+    if (completedStep >= 6) {
+      const timer = setTimeout(() => {
+        if (outcome?.engine?.verdict === 'RETAKE') {
+          nav('/app/retake', { replace: true })
+        } else if (outcome?.id) {
+          nav(`/app/result/${outcome.id}`, { replace: true })
+        } else {
+          nav('/app/result', { replace: true })
+        }
+      }, 700)
+      return () => clearTimeout(timer)
     }
-  }, [status, outcome, nav])
-
-  const currentIndex = progress ? STAGES.findIndex((s) => s.key === progress.stage) : 0
-  const idx = progress?.stage === 'done' ? STAGES.length : Math.max(0, currentIndex)
-  const ocrSub = progress?.stage === 'ocr' ? progress.progress ?? 0 : 0
-  const pct = Math.min(100, Math.round(((idx + (progress?.stage === 'ocr' ? ocrSub : 0)) / STAGES.length) * 100))
-
-  if (status === 'error') {
-    return (
-      <Screen>
-        <div className="flex flex-1 flex-col items-center justify-center gutter text-center">
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-bad-soft text-bad-base">
-            <TriangleAlert size={26} strokeWidth={2} aria-hidden />
-          </span>
-          <h1 className="mt-5 font-display text-xl">The scan could not finish</h1>
-          <p className="mt-2 max-w-[36ch] text-sm leading-relaxed text-ink-500">{error}</p>
-          <button type="button" onClick={() => nav('/app/scan', { replace: true })} className="btn-primary mt-6">
-            Try again
-          </button>
-        </div>
-      </Screen>
-    )
-  }
+  }, [completedStep, outcome, nav])
 
   return (
     <Screen>
-      <div className="flex flex-1 flex-col justify-center gutter pb-16">
-        <div className="flex flex-col items-center text-center">
-          <Mark size={52} className="text-brand-500" />
-          <h1 className="mt-5 font-display text-2xl">Analysing the label</h1>
-          <p className="mt-1.5 text-sm text-ink-500">The reader extracts. The rule engine decides.</p>
+      <header className="sticky top-0 z-30 flex min-h-[60px] items-center px-3">
+        <button
+          type="button"
+          onClick={() => nav('/app/scan')}
+          aria-label={t('common.back')}
+          className="grid h-11 w-11 place-items-center rounded-full text-ink-600 hover:bg-ink-100"
+        >
+          <ArrowLeft size={22} strokeWidth={2} aria-hidden />
+        </button>
+      </header>
+
+      <ScrollArea className="gutter pb-8">
+        <div className="pt-1">
+          <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink-900">
+            {t('processing.title')}
+          </h1>
+          <p className="mt-1 text-xs text-ink-500">
+            {t('processing.sub')}
+          </p>
         </div>
 
-        <div className="mt-8">
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-xs font-medium text-ink-500">Progress</span>
-            <span className="text-xs font-semibold text-ink-800 tnum" aria-live="polite">
-              {pct}%
-            </span>
-          </div>
-          <div
-            className="h-1.5 w-full overflow-hidden rounded-full bg-ink-200"
-            role="progressbar"
-            aria-valuenow={pct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Analysis progress"
-          >
-            <div className="h-full rounded-full bg-brand-500 transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
+        {/* -------------------------------------- 3D Holographic Scanning Cube */}
+        <div className="relative my-6 flex h-36 items-center justify-center overflow-hidden rounded-3xl border border-brand-200 bg-gradient-to-b from-brand-50/80 to-surface p-4 shadow-sm">
+          {/* Pulsing ring */}
+          <div className="absolute h-28 w-28 rounded-full border border-brand-400/40 animate-ping" />
+          
+          {/* 3D Isometric Cube Box */}
+          <div className="relative z-10">
+            <svg viewBox="0 0 80 80" className="h-24 w-24 text-brand-600 drop-shadow-md" fill="none" aria-hidden>
+              {/* Top face */}
+              <path d="M40 14L64 26L40 38L16 26Z" fill="var(--cmp-ok-soft)" stroke="var(--cmp-ok)" strokeWidth="2" strokeLinejoin="round" />
+              {/* Left face */}
+              <path d="M16 26L40 38V66L16 54Z" fill="var(--cmp-ok-line)" stroke="var(--cmp-ok)" strokeWidth="2" strokeLinejoin="round" />
+              {/* Right face */}
+              <path d="M40 38L64 26V54L40 66Z" fill="var(--cmp-ok-soft)" stroke="var(--cmp-ok)" strokeWidth="2" strokeLinejoin="round" />
+              {/* Inner check / scan beam */}
+              <path d="M30 48L37 55L50 42" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
         </div>
 
-        <ol className="mt-7 space-y-0.5">
-          {STAGES.map((s, i) => {
-            const done = i < idx
-            const active = i === idx
+        {/* ------------------------------------- Step-by-Step Progress Checklist */}
+        <div className="space-y-3">
+          {STAGES.map(({ id, titleKey, subKey }) => {
+            const isDone = completedStep >= id
+            const isCurrent = completedStep === id - 1
             return (
-              <li
-                key={s.key}
-                className={`flex items-center gap-3 rounded-lg px-2.5 py-2.5 transition-colors duration-300 ${active ? 'bg-brand-50' : ''}`}
+              <div
+                key={id}
+                className={`flex items-start gap-3 rounded-2xl p-3 transition-all duration-300 ${
+                  isDone ? 'bg-surface border border-ok-base/20 shadow-xs' : isCurrent ? 'bg-brand-50/60 border border-brand-200' : 'opacity-45'
+                }`}
               >
+                {/* Step check icon */}
                 <span
-                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors duration-300 ${
-                    done ? 'bg-brand-500 text-white' : active ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-400'
+                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold transition-all ${
+                    isDone
+                      ? 'bg-ok-base text-white shadow-sm'
+                      : isCurrent
+                        ? 'border-2 border-brand-500 bg-surface text-brand-700'
+                        : 'border border-ink-300 bg-ink-100 text-ink-400'
                   }`}
-                  aria-hidden
                 >
-                  {done ? (
-                    <Check size={13} strokeWidth={3} />
-                  ) : active ? (
-                    <Loader2 size={13} strokeWidth={2.6} className="animate-spin" />
-                  ) : (
-                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                  )}
+                  {isDone ? <Check size={14} strokeWidth={3} aria-hidden /> : isCurrent ? <Loader2 size={13} className="animate-spin" aria-hidden /> : id}
                 </span>
-                <span className={`flex-1 text-sm transition-colors duration-300 ${done ? 'text-ink-500' : active ? 'font-semibold text-brand-800' : 'text-ink-400'}`}>
-                  {s.label}
-                </span>
-                {active && s.key === 'ocr' && ocrSub > 0 && (
-                  <span className="text-xs font-semibold text-brand-700 tnum">{Math.round(ocrSub * 100)}%</span>
-                )}
-              </li>
+
+                <div className="min-w-0 flex-1">
+                  <h3 className={`text-sm font-semibold ${isDone ? 'text-ink-900' : 'text-ink-600'}`}>
+                    {t(titleKey)}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-ink-500">{t(subKey)}</p>
+                </div>
+              </div>
             )
           })}
-        </ol>
+        </div>
 
-        <p className="mt-6 text-center text-xs leading-relaxed text-ink-400">
-          Text is read on this device. Nothing is uploaded unless you share it.
-        </p>
-      </div>
+        {/* Footer Principle */}
+        <div className="mt-6 rounded-2xl bg-ink-50 p-3.5 text-center">
+          <p className="text-xs font-medium text-ink-600">
+            {t('processing.principle')}
+          </p>
+        </div>
+      </ScrollArea>
     </Screen>
   )
 }

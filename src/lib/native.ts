@@ -65,8 +65,12 @@ export async function initNativeChrome() {
   if (!isNative()) return
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar')
+    try {
+      await StatusBar.setOverlaysWebView({ overlay: true })
+    } catch {
+      /* iOS, or an older plugin */
+    }
     await StatusBar.setStyle({ style: Style.Dark })
-    await StatusBar.setBackgroundColor({ color: '#1D5322' })
   } catch {
     /* status bar unavailable */
   }
@@ -92,4 +96,58 @@ export async function saveTextFile(filename: string, contents: string): Promise<
     recursive: true,
   })
   return res.uri
+}
+
+/**
+ * Listens for the OAuth deep link that Google sends back to the app.
+ */
+export async function onAuthDeepLink(
+  handler: (url: string) => void,
+): Promise<() => void> {
+  if (!isNative()) return () => {}
+  try {
+    const { App } = await import('@capacitor/app')
+    const sub = await App.addListener('appUrlOpen', (data: any) => {
+      const url = data?.url ?? ''
+      if (url.includes('auth-callback') || url.includes('code=')) handler(url)
+    })
+    return () => void sub.remove()
+  } catch {
+    return () => {}
+  }
+}
+
+/**
+ * Writes a binary file to the device's Documents folder and hands it to the
+ * system share sheet.
+ */
+export async function shareBinaryFile(
+  filename: string,
+  blob: Blob,
+  title: string,
+): Promise<boolean> {
+  if (!isNative()) return false
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+    const { Share } = await import('@capacitor/share')
+
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result).split(',')[1] ?? '')
+      fr.onerror = () => reject(fr.error)
+      fr.readAsDataURL(blob)
+    })
+
+    const written = await Filesystem.writeFile({
+      path: filename,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true,
+    })
+
+    await Share.share({ title, url: written.uri, dialogTitle: title })
+    return true
+  } catch {
+    return false
+  }
 }

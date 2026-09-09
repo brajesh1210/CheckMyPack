@@ -1,39 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { X, Zap, ZapOff, Images, HelpCircle, Sparkles, CameraOff, Upload } from 'lucide-react'
-import { Screen, AppBar, IconButton } from '../components/UI'
+import { ArrowLeft, HelpCircle, Zap, ZapOff, Image as ImageIcon, Camera, Sparkles, ChevronDown } from 'lucide-react'
+import { Screen } from '../components/UI'
 import { openCamera, stopStream } from '../lib/capture'
-import { assessVideoFrame, THRESHOLDS } from '../lib/quality'
 import { useScanRun } from '../scan/ScanRunner'
-import { isNative, nativePhoto, ensureCameraPermission } from '../lib/native'
+import { isNative, nativePhoto } from '../lib/native'
 
-const samples = [
-  { id: 'compliant', label: 'Compliant pack', hint: 'All mandatory declarations present' },
-  { id: 'violation', label: 'Missing MRP & care details', hint: 'Two critical violations' },
-  { id: 'blurry', label: 'Blurred photo', hint: 'Fails the quality gate' },
+const SAMPLES = [
+  { id: 'compliant', name: 'Amul Taaza Milk', label: 'Amul Milk', verdict: 'PASS', grade: 'A' },
+  { id: 'violation', name: 'Britannia Sunfeast', label: 'Sunfeast Biscuit', verdict: 'VIOLATION', grade: 'C' },
+  { id: 'blurry', name: 'Roasted Cashew', label: 'Cashew Pack', verdict: 'RETAKE', grade: 'C' },
 ]
 
 export default function Scan() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const { startFromBlob, startFromVideo, startSample } = useScanRun()
 
-  const [ready, setReady] = useState(false)
-  const [camError, setCamError] = useState<string | null>(null)
-  const [torch, setTorch] = useState(false)
-  const [hasTorch, setHasTorch] = useState(false)
-  const [sheet, setSheet] = useState(false)
-  const [hint, setHint] = useState('Fill the frame with the label')
-  const [live, setLive] = useState<'good' | 'warn'>('warn')
+  const [activeSample, setActiveSample] = useState('compliant')
+  const [cameraActive, setCameraActive] = useState(false)
+  const [flashOn, setFlashOn] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [samplesOpen, setSamplesOpen] = useState(false)
 
-  // On Android the OS camera app handles capture, so no web preview is needed.
+  // Web camera initialization (for browser development only)
   useEffect(() => {
-    if (isNative()) {
-      setReady(true)
-      return
-    }
+    if (isNative()) return
+
     let cancelled = false
     openCamera()
       .then((stream) => {
@@ -46,262 +43,290 @@ export default function Scan() {
           videoRef.current.srcObject = stream
           videoRef.current.play().catch(() => {})
         }
-        const track = stream.getVideoTracks()[0]
-        const caps = track.getCapabilities?.() as { torch?: boolean } | undefined
-        setHasTorch(!!caps?.torch)
-        setReady(true)
+        setCameraActive(true)
       })
-      .catch((e: DOMException) => {
-        setCamError(
-          e.name === 'NotAllowedError'
-            ? 'Camera permission was denied. You can still upload a photo or run a sample.'
-            : 'No camera is available on this device. Upload a photo instead.',
-        )
+      .catch(() => {
+        setCameraActive(false)
       })
+
     return () => {
       cancelled = true
       stopStream(streamRef.current)
     }
   }, [])
 
-  // Live coaching from the same maths the gate uses.
-  useEffect(() => {
-    if (!ready || isNative()) return
-    const t = setInterval(() => {
-      const v = videoRef.current
-      if (!v) return
-      const q = assessVideoFrame(v)
-      if (!q) return
-      if (q.luma < THRESHOLDS.lumaMin) {
-        setHint('Too dark — find more light')
-        setLive('warn')
-      } else if (q.glare > THRESHOLDS.glareMax) {
-        setHint('Glare detected — tilt the pack away from the light')
-        setLive('warn')
-      } else if (q.sharpness < THRESHOLDS.sharpnessMin * 0.6) {
-        setHint('Hold steady — the image is blurred')
-        setLive('warn')
-      } else {
-        setHint('Looks good — tap to capture')
-        setLive('good')
-      }
-    }, 700)
-    return () => clearInterval(t)
-  }, [ready])
-
-  const toggleTorch = async () => {
-    const track = streamRef.current?.getVideoTracks()[0]
-    if (!track) return
-    try {
-      await track.applyConstraints({ advanced: [{ torch: !torch }] } as never)
-      setTorch((t) => !t)
-    } catch {
-      /* torch unsupported */
-    }
-  }
-
-  const capture = async () => {
+  // Primary Camera Capture: opens native camera on Android, or captures frame on Web
+  const handleCapture = async () => {
     if (isNative()) {
-      const granted = await ensureCameraPermission()
-      if (!granted) {
-        setCamError('Camera permission was denied. Enable it in Settings, or pick a photo from your gallery.')
-        return
+      try {
+        const blob = await nativePhoto('camera')
+        if (blob) {
+          startFromBlob(blob)
+          nav('/app/processing')
+        }
+      } catch {
+        // Cancelled by user
       }
-      const blob = await nativePhoto('camera')
-      if (!blob) return
-      startFromBlob(blob)
+      return
+    }
+
+    if (cameraActive && videoRef.current) {
+      startFromVideo(videoRef.current)
       nav('/app/processing')
       return
     }
-    const v = videoRef.current
-    if (!v || !ready) return
-    stopStream(streamRef.current)
-    startFromVideo(v)
+
+    startSample(activeSample)
     nav('/app/processing')
   }
 
-  const pickFromGallery = async () => {
+  // Gallery / File Upload handler
+  const handlePickGallery = async () => {
     if (isNative()) {
-      const blob = await nativePhoto('gallery')
-      if (!blob) return
-      startFromBlob(blob)
-      nav('/app/processing')
-      return
+      try {
+        const blob = await nativePhoto('gallery')
+        if (blob) {
+          startFromBlob(blob)
+          nav('/app/processing')
+          return
+        }
+      } catch {
+        // Fallback
+      }
     }
     fileRef.current?.click()
   }
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    stopStream(streamRef.current)
-    startFromBlob(f)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    startFromBlob(file)
     nav('/app/processing')
   }
 
-  const runSample = (id: string) => {
-    stopStream(streamRef.current)
+  const handleUseSample = (id: string) => {
     startSample(id)
     nav('/app/processing')
   }
 
   return (
-    <Screen className="bg-ink-900">
-      <AppBar
-        tone="dark"
-        title="Scan label"
-        right={
-          <>
-            {hasTorch && !isNative() && (
-              <IconButton tone="dark" icon={torch ? Zap : ZapOff} label={torch ? 'Turn flash off' : 'Turn flash on'} onClick={toggleTorch} />
-            )}
-            <IconButton tone="dark" icon={X} label="Close scanner" onClick={() => nav('/app/home')} />
-          </>
-        }
-      />
-
-      <div className="relative flex-1 overflow-hidden bg-ink-900">
-        {!isNative() && (
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            autoPlay
-            className={`absolute inset-0 h-full w-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
-          />
-        )}
-
-        {camError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-            <CameraOff size={30} className="text-white/40" aria-hidden />
-            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-white/70">{camError}</p>
-          </div>
-        )}
-
-        {/* framing reticle */}
-        {!camError && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center px-9">
-            <div className="relative aspect-[3/4] w-full max-w-[280px]">
-              {[
-                'left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-xl',
-                'right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-xl',
-                'left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-xl',
-                'right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-xl',
-              ].map((c) => (
-                <span
-                  key={c}
-                  aria-hidden
-                  className={`absolute h-9 w-9 transition-colors duration-300 ${
-                    live === 'good' ? 'border-brand-400' : 'border-white/55'
-                  } ${c}`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <p
-          aria-live="polite"
-          className={`absolute inset-x-0 bottom-5 px-8 text-center text-sm font-medium transition-colors ${
-            live === 'good' ? 'text-brand-300' : 'text-white/70'
-          }`}
-        >
-          {isNative()
-            ? 'Tap the shutter to open the camera'
-            : ready
-              ? hint
-              : camError
-                ? ''
-                : 'Starting camera…'}
-        </p>
-      </div>
-
-      {/* controls */}
-      <div className="safe-b shrink-0 bg-ink-900 px-6 pb-4 pt-5">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={pickFromGallery}
-            className="grid h-12 w-12 place-items-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Upload a photo instead"
-          >
-            <Upload size={21} strokeWidth={1.8} aria-hidden />
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} className="sr-only" />
-
-          <button
-            type="button"
-            onClick={capture}
-            disabled={!ready}
-            aria-label="Capture photo"
-            className="grid h-[74px] w-[74px] place-items-center rounded-full ring-[3px] ring-white/85 transition-transform duration-150 ease-spring active:scale-90 disabled:opacity-35"
-          >
-            <span className="h-[58px] w-[58px] rounded-full bg-white" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSheet(true)}
-            className="grid h-12 w-12 place-items-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Use a sample pack"
-          >
-            <Images size={21} strokeWidth={1.8} aria-hidden />
-          </button>
-        </div>
-
+    <Screen className="bg-canvasWarm text-ink-900">
+      {/* ---------------------------------------------------- Top Header */}
+      <header className="sticky top-0 z-30 flex min-h-[60px] items-center justify-between px-4 border-b border-ink-200/60 bg-surface/90 backdrop-blur-md">
         <button
           type="button"
-          onClick={() => nav('/app/guidelines')}
-          className="mx-auto mt-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-white/55 transition-colors hover:text-white"
+          onClick={() => nav(-1)}
+          aria-label={t('common.back')}
+          className="grid h-11 w-11 place-items-center rounded-full text-ink-800 hover:bg-ink-100"
         >
-          <HelpCircle size={13} aria-hidden />
-          Scanning tips
+          <ArrowLeft size={22} strokeWidth={2} aria-hidden />
+        </button>
+        <h1 className="font-display text-base font-semibold text-ink-900">
+          {t('scan.title')}
+        </h1>
+        <button
+          type="button"
+          onClick={() => setHelpOpen((h) => !h)}
+          aria-label={t('scan.tips')}
+          className="grid h-11 w-11 place-items-center rounded-full text-ink-800 hover:bg-ink-100"
+        >
+          <HelpCircle size={20} strokeWidth={2} aria-hidden />
+        </button>
+      </header>
+
+      {/* --------------------------------------------- Main Viewfinder */}
+      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-4 py-2">
+        {/* Viewfinder Target Frame (Tapping opens the Camera directly) */}
+        <div
+          onClick={handleCapture}
+          className="relative aspect-[3/4] w-full max-w-[320px] overflow-hidden rounded-3xl border-2 border-brand-500 bg-gradient-to-b from-stone-900 via-stone-950 to-ink-950 shadow-xl cursor-pointer select-none"
+        >
+          {/* Desktop Web Video (only rendered in desktop browser) */}
+          {!isNative() && cameraActive ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            /* Viewfinder Center UI */
+            <div className="relative flex h-full w-full flex-col items-center justify-center p-6 text-center">
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/40 shadow-md">
+                <Camera size={32} strokeWidth={1.8} aria-hidden />
+              </div>
+              <p className="mt-3 font-display text-sm font-bold text-white">
+                {t('scan.title')}
+              </p>
+              <p className="mt-1 text-xs text-ink-300">
+                {t('scan.hintGood')}
+              </p>
+
+              {/* Tap to Open Camera Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCapture()
+                }}
+                className="btn-primary min-h-[44px] mt-4 rounded-full px-5 text-xs font-semibold shadow-lg"
+              >
+                <Camera size={16} strokeWidth={2.2} aria-hidden />
+                <span>{t('scan.capture')}</span>
+              </button>
+
+              {/* Active preset note */}
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-2xs text-ink-300">
+                <span>{t('scan.samplePacks')}: </span>
+                <span className="font-semibold text-brand-400">
+                  {SAMPLES.find((s) => s.id === activeSample)?.name}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Animated Laser Scanning Reticle */}
+          <div className="pointer-events-none absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand-400 to-transparent shadow-lg animate-scan-line" />
+
+          {/* Golden Corner Guide Brackets */}
+          <div className="pointer-events-none absolute inset-3" aria-hidden>
+            <div className="absolute left-0 top-0 h-7 w-7 rounded-tl-xl border-l-4 border-t-4 border-brand-400" />
+            <div className="absolute right-0 top-0 h-7 w-7 rounded-tr-xl border-r-4 border-t-4 border-brand-400" />
+            <div className="absolute bottom-0 left-0 h-7 w-7 rounded-bl-xl border-b-4 border-l-4 border-brand-400" />
+            <div className="absolute bottom-0 right-0 h-7 w-7 rounded-br-xl border-b-4 border-r-4 border-brand-400" />
+          </div>
+        </div>
+
+        {/* Guidance Tips Badges in High-Contrast Ink */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 px-2">
+          <span className="chip border-ink-200 bg-surface text-ink-800 text-2xs py-1 px-2.5 shadow-xs">
+            👁️ {t('scan.holdSteady')}
+          </span>
+          <span className="chip border-ink-200 bg-surface text-ink-800 text-2xs py-1 px-2.5 shadow-xs">
+            ☀️ {t('scan.avoidGlare')}
+          </span>
+          <span className="chip border-ink-200 bg-surface text-ink-800 text-2xs py-1 px-2.5 shadow-xs">
+            🏷️ {t('scan.showBackLabel')}
+          </span>
+        </div>
+
+        {/* Optional Demo Sample Selector Pill */}
+        <div className="mt-2.5">
+          <button
+            type="button"
+            onClick={() => setSamplesOpen((s) => !s)}
+            className="flex items-center gap-1.5 rounded-full border border-ink-300 bg-surface px-3 py-1 text-2xs font-semibold text-ink-800 hover:bg-ink-50 min-h-[44px] shadow-xs"
+          >
+            <Sparkles size={12} className="text-amber-600" aria-hidden />
+            <span>{t('scan.useSample')}</span>
+            <ChevronDown size={12} aria-hidden />
+          </button>
+
+          {samplesOpen && (
+            <div className="mt-2 flex items-center justify-center gap-1.5 rounded-2xl bg-surface p-1.5 shadow-md border border-ink-200">
+              {SAMPLES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveSample(s.id)
+                    handleUseSample(s.id)
+                  }}
+                  className={`min-h-[44px] rounded-xl px-2.5 text-2xs font-semibold transition-all ${
+                    s.verdict === 'PASS'
+                      ? 'bg-ok-base text-white hover:bg-ok-base/90'
+                      : s.verdict === 'VIOLATION'
+                        ? 'bg-bad-base text-white hover:bg-bad-base/90'
+                        : 'bg-warn-base text-white hover:bg-warn-base/90'
+                  }`}
+                >
+                  {s.label} ({s.verdict})
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ------------------------------------------- Bottom Controls */}
+      <div className="safe-b flex items-center justify-around px-8 pb-7 pt-2 border-t border-ink-200/60 bg-surface/80 backdrop-blur-sm">
+        {/* Gallery / File Upload Button */}
+        <button
+          type="button"
+          onClick={handlePickGallery}
+          aria-label={t('scan.upload')}
+          className="flex flex-col items-center gap-1 text-ink-800 hover:text-ink-950 transition-transform active:scale-95 min-h-[44px]"
+        >
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink-100 border border-ink-200 shadow-sm text-ink-800">
+            <ImageIcon size={22} strokeWidth={2} aria-hidden />
+          </span>
+          <span className="text-2xs font-semibold text-ink-900">{t('scan.upload')}</span>
+        </button>
+
+        {/* Hidden File Input for fallback */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={handleFileChange}
+        />
+
+        {/* Big Circular Shutter Button */}
+        <button
+          type="button"
+          onClick={handleCapture}
+          aria-label={t('scan.capture')}
+          className="relative grid h-20 w-20 place-items-center rounded-full bg-brand-500/20 p-2 shadow-xl transition-transform active:scale-90 hover:bg-brand-500/30 min-h-[44px]"
+        >
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-500 shadow-lg transition-all hover:scale-105">
+            <span className="h-13 w-13 rounded-full border-2 border-white bg-brand-600" />
+          </span>
+        </button>
+
+        {/* Flash Toggle */}
+        <button
+          type="button"
+          onClick={() => setFlashOn((f) => !f)}
+          aria-label={flashOn ? t('scan.flashOff') : t('scan.flashOn')}
+          className="flex flex-col items-center gap-1 text-ink-800 hover:text-ink-950 transition-transform active:scale-95 min-h-[44px]"
+        >
+          <span className={`grid h-12 w-12 place-items-center rounded-2xl border border-ink-200 shadow-sm ${flashOn ? 'bg-amber-400 text-ink-950 font-bold' : 'bg-ink-100 text-ink-800'}`}>
+            {flashOn ? <Zap size={22} strokeWidth={2.4} aria-hidden /> : <ZapOff size={22} strokeWidth={2} aria-hidden />}
+          </span>
+          <span className="text-2xs font-semibold text-ink-900">{t('scan.flash')}</span>
         </button>
       </div>
 
-      {sheet && (
-        <>
-          <button
-            type="button"
-            aria-label="Close sample picker"
-            onClick={() => setSheet(false)}
-            className="absolute inset-0 z-40 animate-fade-in bg-ink-900/60 backdrop-blur-sm"
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Sample packs"
-            className="safe-b absolute inset-x-0 bottom-0 z-50 animate-fade-up rounded-t-2xl bg-surface px-5 pb-5 pt-3"
-          >
-            <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-ink-300" aria-hidden />
-            <div className="mb-1 flex items-center gap-2">
-              <Sparkles size={16} className="text-brand-600" aria-hidden />
-              <h2 className="font-display text-md font-semibold">Sample packs</h2>
-            </div>
-            <p className="mb-4 text-sm text-ink-500">
-              Runs the real pipeline — quality gate, OCR and rule engine — on a bundled image.
-            </p>
-            <ul className="space-y-2">
-              {samples.map((s) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    onClick={() => runSample(s.id)}
-                    className="card-interactive flex w-full items-center gap-3 p-3.5 text-left"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-md font-medium text-ink-900">{s.label}</span>
-                      <span className="mt-0.5 block text-xs text-ink-500">{s.hint}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
+      {/* Help Tips Modal */}
+      {helpOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-t-3xl bg-surface p-6 text-ink-900 shadow-2xl">
+            <h2 className="font-display text-lg font-bold">{t('scan.tips')}</h2>
+            <ul className="mt-4 space-y-3 text-sm text-ink-600">
+              <li className="flex gap-2.5">
+                <span className="text-brand-600 font-bold">✓</span>
+                <span>{t('guidelines.lightGood')}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="text-brand-600 font-bold">✓</span>
+                <span>{t('guidelines.steadyGood')}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="text-brand-600 font-bold">✓</span>
+                <span>{t('guidelines.frameGood')}</span>
+              </li>
             </ul>
-            <button type="button" onClick={() => setSheet(false)} className="btn-ghost btn-block mt-3">
-              Cancel
+            <button
+              type="button"
+              onClick={() => setHelpOpen(false)}
+              className="btn-primary btn-block mt-6"
+            >
+              {t('common.close')}
             </button>
           </div>
-        </>
+        </div>
       )}
     </Screen>
   )

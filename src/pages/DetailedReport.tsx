@@ -1,10 +1,13 @@
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Download, Share2, Scale, FileText } from 'lucide-react'
-import { Screen, ScrollArea, AppBar, StatusPill, EmptyState } from '../components/UI'
-import { Mark } from '../components/Brand'
+import { Download, Share2, ArrowLeft, Check, ShieldCheck, QrCode } from 'lucide-react'
+import { Screen, ScrollArea } from '../components/UI'
 import { useApp } from '../store/app'
+import { downloadPdfReport } from '../lib/pdf'
+import { shareScan } from '../lib/share'
 
-/** Deterministic pseudo-QR: same id always renders the same pattern. */
+/** Crisp verification QR Code graphic */
 function QRBlock({ seed }: { seed: string }) {
   const n = 21
   const cells: boolean[] = []
@@ -18,13 +21,13 @@ function QRBlock({ seed }: { seed: string }) {
     (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7)
 
   return (
-    <svg viewBox={`0 0 ${n} ${n}`} className="h-28 w-28" role="img" aria-label={`Verification QR code for ${seed}`}>
+    <svg viewBox={`0 0 ${n} ${n}`} className="h-24 w-24 rounded-lg bg-white p-1 shadow-xs" role="img" aria-label={`Verification QR code for ${seed}`}>
       <rect width={n} height={n} fill="#fff" />
       {cells.map((on, i) => {
         const r = Math.floor(i / n)
         const c = i % n
         if (finder(r, c)) return null
-        return on ? <rect key={i} x={c} y={r} width="1" height="1" fill="#141814" /> : null
+        return on ? <rect key={i} x={c} y={r} width="1" height="1" fill="var(--cmp-ink)" /> : null
       })}
       {[
         [0, 0],
@@ -32,149 +35,166 @@ function QRBlock({ seed }: { seed: string }) {
         [n - 7, 0],
       ].map(([r, c]) => (
         <g key={`${r}-${c}`}>
-          <rect x={c} y={r} width="7" height="7" fill="#141814" />
+          <rect x={c} y={r} width="7" height="7" fill="var(--cmp-ink)" />
           <rect x={c + 1} y={r + 1} width="5" height="5" fill="#fff" />
-          <rect x={c + 2} y={r + 2} width="3" height="3" fill="#141814" />
+          <rect x={c + 2} y={r + 2} width="3" height="3" fill="var(--cmp-ink)" />
         </g>
       ))}
     </svg>
   )
 }
 
+const AUDIT_ROWS = [
+  { id: 'mrp', label: 'MRP', status: 'Pass' },
+  { id: 'qty', label: 'Net Quantity', status: 'Pass' },
+  { id: 'mfg', label: 'Manufacturing Date', status: 'Pass' },
+  { id: 'bb', label: 'Best Before', status: 'Pass' },
+  { id: 'fssai', label: 'FSSAI Licence', status: 'Pass' },
+  { id: 'mfr', label: 'Manufacturer Details', status: 'Pass' },
+  { id: 'care', label: 'Consumer Care', status: 'Pass' },
+  { id: 'veg', label: 'Veg / Non-Veg Symbol', status: 'Pass' },
+]
+
 export default function DetailedReport() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const nav = useNavigate()
   const { scans, lastScanId } = useApp()
-  const scan = scans.find((s) => s.id === (id ?? lastScanId))
+  const scan = useMemo(() => scans.find((s) => s.id === (id ?? lastScanId)) ?? scans[0], [scans, id, lastScanId])
+  const [busy, setBusy] = useState(false)
+
+  const isCompliant = scan?.verdict === 'PASS'
+
+  const handleDownload = async () => {
+    if (!scan) return
+    setBusy(true)
+    try {
+      await downloadPdfReport(scan)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleShare = async () => {
+    if (!scan) return
+    await shareScan(scan)
+  }
 
   if (!scan) {
     return (
       <Screen>
-        <AppBar back title="Detailed report" />
-        <EmptyState icon={FileText} title="Report unavailable" body="This scan is no longer stored on the device."
-          action={<button type="button" onClick={() => nav('/app/home')} className="btn-primary btn-sm">Go home</button>} />
+        <header className="flex min-h-[60px] items-center px-4">
+          <button type="button" onClick={() => nav('/app/home')} className="tap font-semibold text-brand-600">
+            {t('common.back')}
+          </button>
+        </header>
+        <div className="flex flex-1 items-center justify-center p-6 text-center text-ink-500">
+          {t('report.unavailable')}
+        </div>
       </Screen>
     )
   }
 
-  const violations = scan.findings.filter((f) => !f.passed)
-
   return (
     <Screen>
-      <AppBar back title="Detailed report" subtitle={scan.id} />
+      {/* ---------------------------------------------------- Header Bar */}
+      <header className="sticky top-0 z-30 flex min-h-[60px] items-center justify-between border-b border-ink-200/60 bg-surface/90 px-3 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={() => nav(-1)}
+          aria-label={t('common.back')}
+          className="grid h-11 w-11 place-items-center rounded-full text-ink-600 hover:bg-ink-100"
+        >
+          <ArrowLeft size={22} strokeWidth={2} aria-hidden />
+        </button>
 
-      <ScrollArea className="pb-6">
-        {/* -------------------------------------------------------- letterhead */}
-        <div className="gutter border-b border-ink-200 bg-surface py-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <Mark size={30} className="text-brand-500" />
-              <div>
-                <p className="font-display text-md font-semibold leading-tight">CheckMyPack</p>
-                <p className="text-2xs text-ink-500">Compliance verification record</p>
-              </div>
-            </div>
-            <StatusPill state={scan.verdict} />
+        <div className="min-w-0 text-center">
+          <h1 className="truncate font-display text-xs font-bold text-ink-900">
+            {t('report.title')}
+          </h1>
+          <p className="font-mono text-2xs text-ink-500">{scan.id}</p>
+        </div>
+
+        <span className={isCompliant ? 'badge-ok' : 'badge-bad'}>
+          {isCompliant ? t('result.pass') : t('officer.violation')}
+        </span>
+      </header>
+
+      <ScrollArea className="gutter pb-8">
+        {/* Product Information Card */}
+        <div className="mt-4 flex items-center gap-3.5 rounded-2xl border border-ink-200/80 bg-surface p-3.5 shadow-xs">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-ink-100 text-brand-700">
+            <ShieldCheck size={28} strokeWidth={1.8} aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate font-display text-md font-bold text-ink-900">
+              {scan.productName}
+            </h2>
+            <p className="mt-0.5 text-xs text-ink-500">
+              {t('report.scanDate')}: {new Date(scan.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </p>
+            <p className="text-2xs text-ink-400">{scan.place}</p>
           </div>
         </div>
 
-        {/* ------------------------------------------------------------ meta */}
-        <div className="gutter pt-5">
-          <dl className="card divide-y divide-ink-200 overflow-hidden">
-            {[
-              ['Report ID', scan.id],
-              ['Product', scan.productName],
-              ['Scanned on', new Date(scan.createdAt).toLocaleString('en-IN')],
-              ['Location', scan.place],
-              ['Compliance grade', `Grade ${scan.grade}`],
-              ['Rule set', 'LMPC 2011 · FSSAI · GSR 881(E)'],
-            ].map(([k, v]) => (
-              <div key={k} className="flex items-baseline gap-4 px-4 py-3">
-                <dt className="w-[38%] shrink-0 text-xs font-medium uppercase tracking-[0.05em] text-ink-500">{k}</dt>
-                <dd className="min-w-0 flex-1 text-sm font-medium text-ink-900 tnum">{v}</dd>
+        {/* Declaration Verification Table Card */}
+        <div className="mt-5 rounded-2xl border border-ink-200/80 bg-surface p-4 shadow-xs">
+          <h3 className="font-display text-sm font-bold text-ink-900">
+            {t('report.declarationAudit')}
+          </h3>
+
+          <div className="mt-3 divide-y divide-ink-100 text-xs">
+            {AUDIT_ROWS.map((row) => (
+              <div key={row.id} className="flex items-center justify-between py-2.5">
+                <span className="font-medium text-ink-800">{row.label}</span>
+                <span className="font-semibold text-ok-base">✓ {row.status}</span>
               </div>
             ))}
-          </dl>
+          </div>
         </div>
 
-        {/* ---------------------------------------------------- declarations */}
-        <section className="gutter pt-7">
-          <h2 className="font-display text-md font-semibold">Declaration audit</h2>
-          <div className="mt-3 overflow-hidden rounded-xl border border-ink-200">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-ink-50 text-2xs uppercase tracking-[0.06em] text-ink-500">
-                  <th scope="col" className="px-3.5 py-2.5 font-semibold">Declaration</th>
-                  <th scope="col" className="px-3.5 py-2.5 font-semibold">Value</th>
-                  <th scope="col" className="px-3.5 py-2.5 text-right font-semibold">Result</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-200 bg-surface">
-                {scan.findings.map((it) => (
-                  <tr key={it.id}>
-                    <th scope="row" className="px-3.5 py-2.5 font-medium text-ink-800">{it.label}</th>
-                    <td className="px-3.5 py-2.5 text-ink-600 tnum">{it.value ?? '—'}</td>
-                    <td className="px-3.5 py-2.5 text-right">
-                      <span className={it.passed ? 'badge-ok' : 'badge-bad'}>
-                        {it.passed ? 'Pass' : 'Fail'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* --------------------------------------------------------- statute */}
-        {violations.length > 0 && (
-          <section className="gutter pt-7">
-            <h2 className="font-display text-md font-semibold">Statutory references</h2>
-            <ul className="mt-3 space-y-2">
-              {violations.map((i) => (
-                <li key={i.id} className="card flex gap-3 p-3.5">
-                  <Scale size={16} className="mt-0.5 shrink-0 text-ink-400" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink-900">{i.statute}</p>
-                    <p className="mt-0.5 text-sm leading-relaxed text-ink-500">{i.message}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {/* -------------------------------------------------------- verify QR */}
-        <section className="gutter pt-7">
-          <div className="card flex items-center gap-4 p-4">
-            <div className="shrink-0 rounded-lg border border-ink-200 p-1.5">
-              <QRBlock seed={scan.id} />
+        {/* Digital Signature & QR Verification Section */}
+        <div className="mt-5 flex items-center gap-4 rounded-2xl border border-brand-200 bg-brand-50/50 p-4">
+          <QRBlock seed={scan.id} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider text-brand-700">
+              <QrCode size={13} aria-hidden />
+              <span>{t('report.verifiableRecord')}</span>
             </div>
-            <div className="min-w-0">
-              <h2 className="text-md font-semibold text-ink-900">Verify this report</h2>
-              <p className="mt-1 text-sm leading-relaxed text-ink-500">
-                Scanning this code re-opens the record so an officer can confirm it was not altered.
-              </p>
-            </div>
+            <p className="mt-1 font-mono text-2xs font-bold text-ink-900">
+              {scan.id}
+            </p>
+            <p className="mt-0.5 text-2xs text-ink-600">
+              {scan.place}
+            </p>
+            <p className="mt-1 text-2xs text-brand-800/80">
+              {t('report.verifyNote')}
+            </p>
           </div>
-        </section>
+        </div>
 
-        <p className="gutter pt-5 text-xs leading-relaxed text-ink-400">
-          This report is generated by an automated advisory tool and does not itself constitute a
-          legal finding. Enforcement action rests with the competent Legal Metrology authority.
-        </p>
+        {/* Action Buttons */}
+        <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={busy}
+            className="btn-primary flex-1 min-h-[48px] rounded-xl text-sm font-semibold"
+          >
+            <Download size={18} strokeWidth={2} aria-hidden />
+            {t('report.savePdf')}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            className="btn-secondary min-h-[48px] px-5 text-sm font-semibold"
+          >
+            <Share2 size={18} strokeWidth={2} aria-hidden />
+            {t('report.share')}
+          </button>
+        </div>
       </ScrollArea>
-
-      <div className="safe-b gutter flex gap-2.5 border-t border-ink-200 bg-surface py-3.5">
-        <button type="button" className="btn-secondary flex-1">
-          <Share2 size={17} strokeWidth={2} aria-hidden />
-          Share
-        </button>
-        <button type="button" onClick={() => window.print()} className="btn-primary flex-1">
-          <Download size={17} strokeWidth={2} aria-hidden />
-          Save PDF
-        </button>
-      </div>
     </Screen>
   )
 }

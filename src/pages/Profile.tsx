@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
   Languages, Volume2, WifiOff, BookOpen, ShieldCheck, Info, LogOut, ChevronRight, UserRound, Trash2,
@@ -5,15 +6,20 @@ import {
 import { Screen, ScrollArea, AppBar, ListRow, SectionHeader } from '../components/UI'
 import BottomNav from '../components/BottomNav'
 import { useApp } from '../store/app'
+import { signOut } from '../lib/auth'
 
 export default function Profile() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const { user, role, lang, setLang, setUser, setRole, online, scans, voice, setVoice, clearScans } = useApp()
 
   const logout = () => {
+    // Clear the local session first so the UI responds immediately; revoking
+    // the server session is best-effort and must not block the user.
     setUser(null)
     setRole(null)
     nav('/')
+    void signOut()
   }
 
   const initials = (user?.name || 'Guest')
@@ -25,7 +31,7 @@ export default function Profile() {
 
   return (
     <Screen>
-      <AppBar title="Profile" />
+      <AppBar title={t('nav.profile')} />
 
       <ScrollArea className="pb-6">
         {/* -------------------------------------------------------- identity */}
@@ -46,34 +52,34 @@ export default function Profile() {
           <div className="mt-2.5 grid grid-cols-2 gap-2.5">
             <div className="card px-3.5 py-3">
               <div className="font-display text-xl font-semibold tnum">{scans.length}</div>
-              <div className="mt-0.5 text-xs text-ink-500">Scans saved</div>
+              <div className="mt-0.5 text-xs text-ink-500">{t('profile.scansSaved')}</div>
             </div>
             <div className="card px-3.5 py-3">
               <div className={`font-display text-xl font-semibold ${online ? 'text-ok-base' : 'text-warn-base'}`}>
-                {online ? 'Online' : 'Offline'}
+                {online ? t('profile.online') : t('profile.offlineState')}
               </div>
-              <div className="mt-0.5 text-xs text-ink-500">Sync status</div>
+              <div className="mt-0.5 text-xs text-ink-500">{t('profile.syncStatus')}</div>
             </div>
           </div>
         </div>
 
         {/* ------------------------------------------------------- language */}
         <section className="gutter pt-7">
-          <SectionHeader title="Language" />
+          <SectionHeader title={t('profile.language')} />
           <div className="card overflow-hidden">
             <div className="flex items-center gap-3 p-4">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink-100 text-ink-600">
                 <Languages size={17} strokeWidth={1.9} aria-hidden />
               </span>
-              <span className="flex-1 text-md font-medium text-ink-900">Interface language</span>
-              <div className="flex rounded-lg bg-ink-100 p-0.5" role="group" aria-label="Language">
+              <span className="flex-1 text-md font-medium text-ink-900">{t('profile.interfaceLanguage')}</span>
+              <div className="flex rounded-lg bg-ink-100 p-0.5" role="group" aria-label={t('profile.language')}>
                 {(['en', 'hi'] as const).map((l) => (
                   <button
                     key={l}
                     type="button"
                     onClick={() => setLang(l)}
                     aria-pressed={lang === l}
-                    className={`min-h-[34px] rounded-md px-3 text-sm font-semibold transition-colors ${
+                    className={`min-h-[44px] rounded-md px-4 text-sm font-semibold transition-colors ${
                       lang === l ? 'bg-surface text-ink-900 shadow-xs' : 'text-ink-500 hover:text-ink-800'
                     }`}
                   >
@@ -87,51 +93,51 @@ export default function Profile() {
 
         {/* ------------------------------------------------------ preferences */}
         <section className="gutter pt-7">
-          <SectionHeader title="Preferences" />
+          <SectionHeader title={t('profile.preferences')} />
           <div className="card divide-y divide-ink-200 overflow-hidden">
             <ListRow
               icon={Volume2}
-              title="Voice read-out"
-              meta="Speak the verdict aloud after each scan"
+              title={t('profile.voice')}
+              meta={t('profile.voiceMeta')}
               onClick={() => setVoice(!voice)}
               right={<Toggle on={voice} />}
             />
-            <ListRow icon={WifiOff} title="On-device reading" meta="Labels are always read locally; nothing is uploaded" right={<Toggle on />} />
+            <ListRow icon={WifiOff} title={t('profile.onDevice')} meta={t('profile.onDeviceMeta')} right={<Toggle on />} />
           </div>
         </section>
 
         {/* ---------------------------------------------------------- more */}
         <section className="gutter pt-7">
-          <SectionHeader title="About" />
+          <SectionHeader title={t('profile.about')} />
           <div className="card divide-y divide-ink-200 overflow-hidden">
             <ListRow
               icon={BookOpen}
-              title="Scanning guide"
+              title={t('home.guideTitle')}
               onClick={() => nav('/app/guidelines')}
               right={<ChevronRight size={17} className="text-ink-300" aria-hidden />}
             />
             <ListRow
               icon={ShieldCheck}
-              title="Rules & citations"
+              title={t('profile.rules')}
               meta="LMPC 2011 · FSSAI · GSR 881(E) 2025"
               right={<ChevronRight size={17} className="text-ink-300" aria-hidden />}
             />
-            <ListRow icon={Info} title="Version" meta="CheckMyPack 1.0 · SIH26034" />
+            <ListRow icon={Info} title={t('profile.version')} meta="CheckMyPack 1.0 · SIH26034" />
           </div>
         </section>
 
         <div className="gutter pt-5">
           <button
             type="button"
-            onClick={() => { if (confirm('Delete all stored scans? This cannot be undone.')) clearScans() }}
+            onClick={() => { if (confirm(t('profile.confirmClear'))) clearScans() }}
             className="btn-secondary btn-block"
           >
             <Trash2 size={17} strokeWidth={2} aria-hidden />
-            Clear scan history
+            {t('profile.clearHistory')}
           </button>
           <button type="button" onClick={logout} className="btn-secondary btn-block mt-2.5 text-bad-text hover:border-bad-soft hover:bg-bad-soft">
             <LogOut size={17} strokeWidth={2} aria-hidden />
-            Sign out
+            {t('profile.signOut')}
           </button>
         </div>
       </ScrollArea>
@@ -142,6 +148,7 @@ export default function Profile() {
 }
 
 function Toggle({ on }: { on?: boolean }) {
+  const { t } = useTranslation()
   return (
     <span
       className={`relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors ${
@@ -149,7 +156,7 @@ function Toggle({ on }: { on?: boolean }) {
       }`}
       role="switch"
       aria-checked={!!on}
-      aria-label="Toggle"
+      aria-label={t('profile.toggle')}
     >
       <span className={`h-5 w-5 rounded-full bg-white shadow-xs transition-transform ${on ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
     </span>

@@ -1,155 +1,187 @@
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ClipboardList, Map, TriangleAlert, ShieldCheck, ChevronRight, TrendingUp } from 'lucide-react'
-import { Screen, ScrollArea, AppBar, IconButton, SectionHeader, Stat } from '../components/UI'
+import { Menu, TrendingUp } from 'lucide-react'
+import { Screen, ScrollArea } from '../components/UI'
 import BottomNav from '../components/BottomNav'
-import { useApp } from '../store/app'
-
-const trend = [88.4, 90.1, 89.6, 92.3, 93.8, 94.1, 95.6, 96.2]
-const months = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
-
-function Sparkline() {
-  const w = 320
-  const h = 92
-  const min = 86
-  const max = 98
-  const pts = trend.map((v, i) => {
-    const x = (i / (trend.length - 1)) * w
-    const y = h - ((v - min) / (max - min)) * h
-    return [x, y] as const
-  })
-  const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-  const area = `${line} L${w},${h} L0,${h} Z`
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-[92px] w-full" role="img" aria-label="Compliance rate rose from 88.4% in February to 96.2% in September">
-      <defs>
-        <linearGradient id="cmp-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2E7D32" stopOpacity="0.20" />
-          <stop offset="100%" stopColor="#2E7D32" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[0.25, 0.5, 0.75].map((f) => (
-        <line key={f} x1="0" y1={h * f} x2={w} y2={h * f} stroke="#E2E5E2" strokeWidth="1" />
-      ))}
-      <path d={area} fill="url(#cmp-fill)" />
-      <path d={line} fill="none" stroke="#2E7D32" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={pts[pts.length - 1][0] - 1.5} cy={pts[pts.length - 1][1]} r="3.6" fill="#2E7D32" stroke="#fff" strokeWidth="2" />
-    </svg>
-  )
-}
-
-const recent = [
-  { id: 'INS-4471', place: 'Karol Bagh Market, Delhi', status: 'VIOLATION', time: '32 min ago' },
-  { id: 'INS-4470', place: 'Sadar Bazaar, Delhi', status: 'PASS', time: '2 hours ago' },
-  { id: 'INS-4468', place: 'Lajpat Nagar, Delhi', status: 'PASS', time: '5 hours ago' },
-] as const
+import { Wordmark } from '../components/Brand'
 
 export default function OfficerDashboard() {
+  const { t } = useTranslation()
   const nav = useNavigate()
-  const user = useApp((s) => s.user)
+
+  const stats = {
+    total: '8,432',
+    compliant: '7,621',
+    violations: '811',
+    rate: '96.2%',
+  }
+
+  const recentInspections = [
+    { id: '1', product: 'Fortune Oil', place: 'Delhi', verdict: 'VIOLATION' },
+    { id: '2', product: 'Amul Milk', place: 'Noida', verdict: 'PASS' },
+    { id: '3', product: 'Britannia Biscuits', place: 'Gurgaon', verdict: 'PASS' },
+    { id: '4', product: 'Nestle Maggi', place: 'Delhi', verdict: 'VIOLATION' },
+  ]
 
   return (
     <Screen>
-      <AppBar
-        title={<span className="text-md font-semibold">{user?.name || 'Inspector'}</span>}
-        subtitle="Legal Metrology · Delhi circle"
-        right={<IconButton icon={Bell} label="Notifications" badge={5} />}
-      />
+      {/* ---------------------------------------------------- Top Bar */}
+      <header className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between border-b border-ink-200/60 bg-surface/90 px-5 backdrop-blur-md">
+        <Wordmark size={26} />
+        <button
+          type="button"
+          aria-label={t('officer.more')}
+          onClick={() => nav('/app/profile')}
+          className="grid h-11 w-11 place-items-center rounded-full text-ink-600 hover:bg-ink-100"
+        >
+          <Menu size={22} strokeWidth={2} aria-hidden />
+        </button>
+      </header>
 
-      <ScrollArea className="pb-6">
-        {/* --------------------------------------------------------- headline */}
+      <ScrollArea className="pb-8">
+        {/* Officer Overview Title */}
         <section className="gutter pt-4">
-          <div className="card p-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <div>
-                <p className="eyebrow">Compliance rate</p>
-                <p className="mt-1.5 font-display text-3xl font-semibold text-ink-900 tnum">96.2%</p>
-              </div>
-              <span className="inline-flex items-center gap-1 rounded-md bg-ok-soft px-2 py-1 text-xs font-semibold text-ok-text">
-                <TrendingUp size={13} strokeWidth={2.4} aria-hidden />
-                +1.8 pts
+          <h1 className="font-display text-xl font-bold text-ink-900">
+            {t('officer.dashboard')}
+          </h1>
+          <p className="mt-0.5 text-xs text-ink-500">
+            {t('officer.lastUpdated')}
+          </p>
+        </section>
+
+        {/* -------------------------------------------- 4 Key Metric Cards */}
+        <section className="gutter pt-4">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+            {/* Total */}
+            <div className="card flex flex-col justify-between p-2 text-center">
+              <span className="text-2xs font-bold text-ink-500 uppercase tracking-tight">{t('officer.filterAll')}</span>
+              <span className="font-display text-sm sm:text-base font-bold text-ink-900 tnum">{stats.total}</span>
+            </div>
+
+            {/* Compliant */}
+            <div className="card flex flex-col justify-between p-2 text-center">
+              <span className="text-2xs font-bold text-ok-base uppercase tracking-tight">{t('home.compliant')}</span>
+              <span className="font-display text-sm sm:text-base font-bold text-ok-base tnum">{stats.compliant}</span>
+            </div>
+
+            {/* Violations */}
+            <div className="card flex flex-col justify-between p-2 text-center">
+              <span className="text-2xs font-bold text-bad-base uppercase tracking-tight">{t('home.violations')}</span>
+              <span className="font-display text-sm sm:text-base font-bold text-bad-base tnum">{stats.violations}</span>
+            </div>
+
+            {/* Rate */}
+            <div className="card flex flex-col justify-between p-2 text-center">
+              <span className="text-2xs font-bold text-ok-base uppercase tracking-tight">{t('officer.rate')}</span>
+              <span className="font-display text-sm sm:text-base font-bold text-ok-base tnum">{stats.rate}</span>
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------------------- Compliance Trend Area Chart */}
+        <section className="gutter pt-5">
+          <div className="rounded-2xl border border-ink-200/80 bg-surface p-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-sm font-bold text-ink-900">
+                {t('officer.complianceTrend')}
+              </h2>
+              <span className="flex items-center gap-1 rounded-md bg-ok-soft px-2 py-0.5 text-2xs font-bold text-ok-text">
+                <TrendingUp size={12} strokeWidth={2.4} aria-hidden />
+                +2.4%
               </span>
             </div>
-            <div className="mt-4">
-              <Sparkline />
-              <div className="mt-1.5 flex justify-between text-2xs text-ink-400 tnum">
-                {months.map((m) => (
-                  <span key={m}>{m}</span>
+
+            {/* SVG Trend Chart */}
+            <div className="mt-4 relative h-32 w-full">
+              <svg viewBox="0 0 300 100" className="h-full w-full overflow-visible" role="img" aria-label={t('officer.complianceAria')}>
+                <defs>
+                  <linearGradient id="trend-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="var(--cmp-ok)" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="var(--cmp-ok)" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                {/* Grid lines */}
+                <line x1="30" y1="20" x2="290" y2="20" stroke="var(--cmp-ink)" strokeOpacity="0.06" />
+                <line x1="30" y1="50" x2="290" y2="50" stroke="var(--cmp-ink)" strokeOpacity="0.06" />
+                <line x1="30" y1="80" x2="290" y2="80" stroke="var(--cmp-ink)" strokeOpacity="0.06" />
+
+                {/* Axis labels */}
+                <text x="5" y="23" fill="var(--cmp-ink-muted)" fontSize="8" fontFamily="sans-serif">20%</text>
+                <text x="5" y="53" fill="var(--cmp-ink-muted)" fontSize="8" fontFamily="sans-serif">10%</text>
+                <text x="5" y="83" fill="var(--cmp-ink-muted)" fontSize="8" fontFamily="sans-serif">00%</text>
+
+                {/* Area fill under curve */}
+                <path
+                  d="M 30 75 Q 70 82 110 65 T 190 48 T 250 42 T 290 35 L 290 90 L 30 90 Z"
+                  fill="url(#trend-grad)"
+                />
+
+                {/* Main trend line */}
+                <path
+                  d="M 30 75 Q 70 82 110 65 T 190 48 T 250 42 T 290 35"
+                  fill="none"
+                  stroke="var(--cmp-ok)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+
+                {/* Data Points */}
+                {[
+                  { x: 30, y: 75, m: 'Jan' },
+                  { x: 73, y: 80, m: 'Feb' },
+                  { x: 116, y: 65, m: 'Mar' },
+                  { x: 160, y: 55, m: 'Apr' },
+                  { x: 203, y: 46, m: 'May' },
+                  { x: 246, y: 42, m: 'Jun' },
+                  { x: 290, y: 35, m: 'Jul' },
+                ].map((pt) => (
+                  <g key={pt.m}>
+                    <circle cx={pt.x} cy={pt.y} r="3" fill="#fff" stroke="var(--cmp-ok)" strokeWidth="2" />
+                    <text x={pt.x - 6} y="98" fill="var(--cmp-ink-muted)" fontSize="8" fontFamily="sans-serif">{pt.m}</text>
+                  </g>
                 ))}
-              </div>
+              </svg>
             </div>
           </div>
         </section>
 
-        {/* ------------------------------------------------------------ stats */}
+        {/* -------------------------------------------- Recent Inspections */}
         <section className="gutter pt-5">
-          <div className="grid grid-cols-3 gap-2.5">
-            <Stat value="8,432" label="Inspections" icon={ClipboardList} />
-            <Stat value="9,621" label="Compliant" tone="ok" icon={ShieldCheck} />
-            <Stat value="811" label="Violations" tone="bad" icon={TriangleAlert} />
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="font-display text-sm font-bold text-ink-900">{t('officer.recentInspectionsTitle')}</h2>
+            <button
+              type="button"
+              onClick={() => nav('/app/inspections')}
+              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+            >
+              {t('home.viewAll')}
+            </button>
           </div>
-        </section>
 
-        {/* ---------------------------------------------------------- hotspots */}
-        <section className="gutter pt-7">
-          <SectionHeader title="Violation hotspots" action="Open map" onAction={() => nav('/app/heatmap')} />
-          <div className="card divide-y divide-ink-200 overflow-hidden">
-            {[
-              ['Mumbai — Dadar', 132],
-              ['Delhi — Dwarka', 84],
-              ['Rajkot — Central', 74],
-            ].map(([place, n], i) => (
-              <button
-                key={place as string}
-                type="button"
-                onClick={() => nav('/app/heatmap')}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-50"
-              >
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-ink-100 font-display text-xs font-bold text-ink-600 tnum">
-                  {i + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-md font-medium text-ink-900">{place as string}</span>
-                <span className="shrink-0 text-sm font-semibold text-bad-base tnum">{n as number}</span>
-                <ChevronRight size={16} className="shrink-0 text-ink-300" aria-hidden />
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* ------------------------------------------------------ recent cases */}
-        <section className="gutter pt-7">
-          <SectionHeader title="Recent inspections" action="All cases" onAction={() => nav('/app/inspections')} />
-          <ul className="space-y-2.5">
-            {recent.map((r) => {
-              const bad = r.status === 'VIOLATION'
+          <div className="space-y-2.5">
+            {recentInspections.map((item) => {
+              const isBad = item.verdict === 'VIOLATION'
               return (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    onClick={() => nav('/app/inspections')}
-                    className="card-interactive flex w-full items-center gap-3.5 p-3.5 text-left"
-                  >
-                    <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${bad ? 'bg-bad-soft text-bad-base' : 'bg-ok-soft text-ok-base'}`}>
-                      {bad ? <TriangleAlert size={18} strokeWidth={1.9} aria-hidden /> : <ShieldCheck size={18} strokeWidth={1.9} aria-hidden />}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-md font-medium text-ink-900">{r.place}</span>
-                      <span className="mt-0.5 block truncate text-xs text-ink-500 tnum">{r.id} · {r.time}</span>
-                    </span>
-                    <span className={bad ? 'badge-bad' : 'badge-ok'}>{bad ? 'Violation' : 'Clear'}</span>
-                  </button>
-                </li>
+                <div
+                  key={item.id}
+                  onClick={() => nav('/app/inspections')}
+                  className="card-interactive flex items-center justify-between p-3 cursor-pointer"
+                >
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-semibold text-ink-900">{item.product}</h3>
+                    <p className="text-2xs text-ink-500">{item.place}</p>
+                  </div>
+                  <span className={isBad ? 'badge-bad' : 'badge-ok'}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isBad ? 'bg-bad-base' : 'bg-ok-base'}`} />
+                    {isBad ? t('officer.violation') : t('officer.clear')}
+                  </span>
+                </div>
               )
             })}
-          </ul>
+          </div>
         </section>
-
-        <div className="gutter pt-6">
-          <button type="button" onClick={() => nav('/app/heatmap')} className="btn-secondary btn-block">
-            <Map size={17} strokeWidth={2} aria-hidden />
-            Open enforcement map
-          </button>
-        </div>
       </ScrollArea>
 
       <BottomNav />

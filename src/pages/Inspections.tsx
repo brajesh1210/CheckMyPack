@@ -1,39 +1,66 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, MapPin, ChevronRight } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, EmptyState } from '../components/UI'
 import BottomNav from '../components/BottomNav'
+import { useApp } from '../store/app'
 
 type Case = { id: string; product: string; brand: string; place: string; bad: boolean; date: string }
 
-const cases: Case[] = [
-  { id: 'INS-4471', product: 'Fortune Sunflower Oil', brand: 'Adani Wilmar', place: 'Karol Bagh, Delhi', bad: true, date: '08 Sep 2026' },
-  { id: 'INS-4470', product: 'Amul Taaza Milk', brand: 'GCMMF', place: 'Sector 18, Noida', bad: false, date: '08 Sep 2026' },
-  { id: 'INS-4469', product: 'Sunfeast Marie Light', brand: 'ITC', place: 'DLF Phase 3, Gurgaon', bad: false, date: '07 Sep 2026' },
-  { id: 'INS-4468', product: 'Maggi 2-Minute Noodles', brand: 'Nestlé India', place: 'Lajpat Nagar, Delhi', bad: true, date: '07 Sep 2026' },
-  { id: 'INS-4466', product: 'Aashirvaad Atta', brand: 'ITC', place: 'Dadar West, Mumbai', bad: false, date: '06 Sep 2026' },
-  { id: 'INS-4465', product: 'Tata Salt', brand: 'Tata Consumer', place: 'Central, Rajkot', bad: false, date: '06 Sep 2026' },
-]
 
-const tabs = ['All', 'Violations', 'Cleared'] as const
+const tabs = [
+  ['all', 'officer.filterAll'],
+  ['violations', 'officer.filterViolations'],
+  ['cleared', 'officer.filterCleared'],
+] as const
 
 export default function Inspections() {
+  const { t } = useTranslation()
+  const nav = useNavigate()
+  const scans = useApp((s) => s.scans)
   const [q, setQ] = useState('')
-  const [tab, setTab] = useState<(typeof tabs)[number]>('All')
+  const [tab, setTab] = useState<'all' | 'violations' | 'cleared'>('all')
+
+  // The register is the officer's own recorded inspections. Aggregate views
+  // are deliberately not drillable to individual rows filed by other users.
+  const cases: Case[] = useMemo(
+    () =>
+      scans
+        .filter((s) => s.verdict !== 'RETAKE')
+        .map((s) => ({
+          id: s.id,
+          product: s.productName,
+          brand: s.productName.split(/\s+/).slice(0, 2).join(' '),
+          place: s.place,
+          bad: s.verdict === 'VIOLATION',
+          date: new Date(s.createdAt).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }),
+        })),
+    [scans],
+  )
 
   const list = useMemo(
     () =>
       cases.filter((c) => {
-        const t = q.trim().toLowerCase()
-        const mq = !t || c.product.toLowerCase().includes(t) || c.brand.toLowerCase().includes(t) || c.place.toLowerCase().includes(t)
-        const mt = tab === 'All' || (tab === 'Violations' ? c.bad : !c.bad)
+        const needle = q.trim().toLowerCase()
+        const mq =
+          !needle ||
+          c.product.toLowerCase().includes(needle) ||
+          c.brand.toLowerCase().includes(needle) ||
+          c.place.toLowerCase().includes(needle)
+        const mt = tab === 'all' || (tab === 'violations' ? c.bad : !c.bad)
         return mq && mt
       }),
-    [q, tab],
+    [cases, q, tab],
   )
 
   return (
     <Screen>
-      <AppBar title="Case register" subtitle={`${cases.length} inspections logged`} />
+      <AppBar title={t('officer.caseRegister')} subtitle={t('officer.inspectionsLogged', { count: cases.length })} />
 
       <ScrollArea className="pb-6">
         <div className="gutter pt-3">
@@ -42,28 +69,28 @@ export default function Inspections() {
             <input
               type="search"
               className="field pl-10"
-              placeholder="Search product, brand or locality"
+              placeholder={t('officer.searchCases')}
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              aria-label="Search inspections"
+              aria-label={t('officer.ariaSearchCases')}
             />
           </div>
 
-          <div className="mt-3 flex gap-2" role="tablist" aria-label="Filter cases">
-            {tabs.map((t) => {
-              const active = tab === t
+          <div className="mt-3 flex gap-2" role="tablist" aria-label={t('officer.ariaFilterCases')}>
+            {tabs.map(([value, labelKey]) => {
+              const active = tab === value
               return (
                 <button
-                  key={t}
+                  key={value}
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setTab(t)}
-                  className={`min-h-[36px] rounded-full px-3.5 text-sm font-medium transition-colors ${
+                  onClick={() => setTab(value)}
+                  className={`min-h-[44px] rounded-full px-4 text-sm font-medium transition-colors ${
                     active ? 'bg-ink-900 text-white' : 'border border-ink-200 bg-surface text-ink-600 hover:border-ink-300 hover:text-ink-900'
                   }`}
                 >
-                  {t}
+                  {t(labelKey)}
                 </button>
               )
             })}
@@ -73,23 +100,27 @@ export default function Inspections() {
         <div className="gutter pt-5">
           {list.length === 0 ? (
             <div className="card">
-              <EmptyState icon={Search} title="No matching cases" body="Try a different search term or switch the filter." />
+              <EmptyState icon={Search} title={t('officer.noMatchingCases')} body={t('officer.tryDifferentSearch')} />
             </div>
           ) : (
             <ul className="stagger space-y-2.5">
               {list.map((c) => (
                 <li key={c.id}>
-                  <button type="button" className="card-interactive flex w-full items-start gap-3 p-4 text-left">
+                  <button
+                    type="button"
+                    onClick={() => nav(`/app/result/${c.id}`)}
+                    className="card-interactive flex w-full items-start gap-3 p-4 text-left"
+                  >
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
                         <span className="truncate text-md font-medium text-ink-900">{c.product}</span>
-                        <span className={c.bad ? 'badge-bad' : 'badge-ok'}>{c.bad ? 'Violation' : 'Clear'}</span>
+                        <span className={c.bad ? 'badge-bad' : 'badge-ok'}>{t(c.bad ? 'officer.violation' : 'officer.clear')}</span>
                       </span>
                       <span className="mt-1 block truncate text-xs text-ink-500">{c.brand}</span>
                       <span className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500">
                         <MapPin size={12} strokeWidth={2} className="shrink-0 text-ink-400" aria-hidden />
                         <span className="truncate">{c.place}</span>
-                        <span className="text-ink-300">·</span>
+                        <span className="text-ink-400">·</span>
                         <span className="shrink-0 tnum">{c.date}</span>
                       </span>
                     </span>

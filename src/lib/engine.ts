@@ -253,6 +253,12 @@ export function runEngine(
 export const rulesMeta = {
   version: doc.schemaVersion,
   ruleCount: doc.rules.length,
+  /**
+   * Every rule id in document order. The QR payload stores indices into this
+   * list instead of the ids themselves, which keeps a printed report's code
+   * small enough to stay reliably scannable.
+   */
+  ids: doc.rules.map((r) => r.id) as string[],
   amendments: doc.amendments,
   fieldDefinitions: doc.fieldDefinitions,
 }

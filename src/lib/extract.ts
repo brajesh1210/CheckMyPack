@@ -108,6 +108,39 @@ const MATCHERS: Record<string, Matcher[]> = {
   allergen: [{ re: /\b(contains?\s+allergens?|allergen\s+(?:info|declaration)|may\s+contain)\b/i }],
 }
 
+/**
+ * Last resort for the generic name: look only at the lines above the first
+ * declaration.
+ *
+ * The name is printed in the brand band, above the ingredients panel. Lines
+ * further down — a wrapped ingredients continuation such as "Iodised Salt,
+ * Spices" — read exactly like a product name and must never be taken for one,
+ * so anything from the first declaration onwards is out of bounds.
+ */
+const DECLARATION_LINE =
+  /ingredient|mrp|net\s|fssai|batch|mfg|mfd|best\s*before|customer|manufactur|packed|country|lic\b|expiry|contains/i
+
+function findGenericName(text: string): string | null {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const firstDecl = lines.findIndex((l) => DECLARATION_LINE.test(l))
+  const head = firstDecl === -1 ? lines : lines.slice(0, firstDecl)
+
+  for (const line of head) {
+    if (line.length < 4 || line.length > 40) continue
+    if (/[:;,]/.test(line)) continue // a declaration, not a name
+    if (/\d/.test(line)) continue // sizes and prices are not names
+    const words = line.split(/\s+/)
+    if (words.length > 6) continue
+    const letters = line.replace(/[^A-Za-z]/g, '')
+    if (letters.length < 4) continue
+    return line
+  }
+  return null
+}
+
 const PAN_MASALA = /\b(pan\s*masala|paan\s*masala|gutkha|gutka|supari|betel\s*nut|zarda)\b/i
 
 export function extractFields(ocr: OcrResult, imgW = 0, imgH = 0): { fields: Fields; category: string | null } {
@@ -134,6 +167,20 @@ export function extractFields(ocr: OcrResult, imgW = 0, imgH = 0): { fields: Fie
       }
     }
     fields[key] = found
+  }
+
+  // The regex matchers only see whole, clean lines. If they came up empty for
+  // the product name, try the pre-declaration region before giving up on a
+  // declaration the law requires.
+  if (!fields.generic_name?.value) {
+    const name = findGenericName(text)
+    if (name) {
+      fields.generic_name = {
+        value: name,
+        confidence: Math.min(0.8, baseConf * 0.9),
+        box: locate(ocr.words, name, imgW, imgH),
+      }
+    }
   }
 
   const category = PAN_MASALA.test(text) ? 'pan_masala' : null

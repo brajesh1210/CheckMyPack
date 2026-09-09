@@ -1,18 +1,134 @@
-import { type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, type LucideIcon } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { ArrowLeft, Smartphone, ChevronDown, Languages } from 'lucide-react'
+import { useApp, type Role } from '../store/app'
 
-/* ------------------------------------------------------------------ Shell */
+/* ----------------------------------------------------------- Quick Showcase Bar */
 
-export function Screen({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`shell ${className}`}>{children}</div>
+const SHOWCASE_SCREENS = [
+  { id: '1', label: '1. Landing', path: '/' },
+  { id: '2', label: '2. Login', path: '/login' },
+  { id: '3', label: '3. Role Select', path: '/role' },
+  { id: '4', label: '4. Consumer Dashboard', path: '/app/home', role: 'consumer' as Role },
+  { id: '5', label: '5. Scan Product', path: '/app/scan' },
+  { id: '6', label: '6. Scan Processing', path: '/app/processing' },
+  { id: '7', label: '7. Retake Page', path: '/app/retake' },
+  { id: '8', label: '8. Pass Result', path: '/app/result/CMP-1005-8403' },
+  { id: '9', label: '9. Violation Result', path: '/app/result/CMP-1004-9214' },
+  { id: '10', label: '10. Detailed Report', path: '/app/report/CMP-1005-8403' },
+  { id: '11', label: '11. Officer Dashboard', path: '/app/officer', role: 'officer' as Role },
+  { id: '12', label: '12. Violation Heatmap', path: '/app/heatmap', role: 'officer' as Role },
+]
+
+export function Screen({
+  children,
+  className = '',
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  const nav = useNavigate()
+  const { pathname } = useLocation()
+  const { role, setRole, lang, setLang } = useApp()
+  const [showcaseOpen, setShowcaseOpen] = useState(false)
+
+  const handleJump = (item: typeof SHOWCASE_SCREENS[0]) => {
+    if (item.role) setRole(item.role)
+    nav(item.path)
+    setShowcaseOpen(false)
+  }
+
+  return (
+    <div className="relative flex h-full w-full flex-col items-center justify-center bg-canvasWarm font-sans antialiased select-none">
+      {/* -------------------------------- Desktop Showcase Switcher Bar */}
+      <div className="hidden lg:flex fixed top-3 z-50 items-center gap-2 rounded-full border border-ink-200/80 bg-surface/95 px-4 py-1.5 shadow-lg backdrop-blur-md">
+        <div className="flex items-center gap-1.5 border-r border-ink-200 pr-3">
+          <Smartphone size={16} className="text-brand-600" aria-hidden />
+          <span className="font-display text-xs font-bold text-ink-900">CheckMyPack Inspiration UI</span>
+        </div>
+
+        {/* Screen picker dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowcaseOpen((o) => !o)}
+            className="flex items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1 text-xs font-semibold text-ink-800 hover:bg-ink-200"
+          >
+            <span>Jump to Screen</span>
+            <ChevronDown size={14} aria-hidden />
+          </button>
+
+          {showcaseOpen && (
+            <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-ink-200 bg-surface p-2 shadow-2xl">
+              <div className="max-h-80 overflow-y-auto space-y-1">
+                {SHOWCASE_SCREENS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => handleJump(s)}
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-medium text-ink-800 hover:bg-brand-50 hover:text-brand-700"
+                  >
+                    <span>{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Language Toggle */}
+        <button
+          type="button"
+          onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
+          className="flex items-center gap-1 rounded-full border border-ink-200 px-2.5 py-1 text-xs font-semibold text-ink-700 hover:bg-ink-50"
+        >
+          <Languages size={14} aria-hidden />
+          <span>{lang === 'en' ? 'English' : 'हिंदी'}</span>
+        </button>
+
+        {/* Role Quick Switcher */}
+        <div className="flex items-center rounded-full bg-ink-100 p-0.5 text-2xs font-semibold">
+          <button
+            type="button"
+            onClick={() => {
+              setRole('consumer')
+              nav('/app/home')
+            }}
+            className={`rounded-full px-2.5 py-1 transition-colors ${
+              role === 'consumer' ? 'bg-brand-500 text-white' : 'text-ink-600'
+            }`}
+          >
+            Consumer
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRole('officer')
+              nav('/app/officer')
+            }}
+            className={`rounded-full px-2.5 py-1 transition-colors ${
+              role === 'officer' ? 'bg-blue-600 text-white' : 'text-ink-600'
+            }`}
+          >
+            Officer
+          </button>
+        </div>
+      </div>
+
+      {/* ---------------------------------------- Mobile Phone Shell */}
+      <div className={`shell ${className}`}>
+        {/* Screen Content */}
+        {children}
+      </div>
+    </div>
+  )
 }
 
 export function ScrollArea({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`shell-scroll ${className}`}>{children}</div>
 }
 
-/* ----------------------------------------------------------------- Header */
+/* ----------------------------------------------------------- Header / AppBar */
 
 export function AppBar({
   title,
@@ -20,7 +136,6 @@ export function AppBar({
   back,
   onBack,
   right,
-  tone = 'light',
   border = true,
 }: {
   title?: ReactNode
@@ -28,35 +143,31 @@ export function AppBar({
   back?: boolean
   onBack?: () => void
   right?: ReactNode
-  tone?: 'light' | 'dark'
   border?: boolean
 }) {
   const nav = useNavigate()
-  const dark = tone === 'dark'
   return (
     <header
-      className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 px-3 backdrop-blur-md ${
-        dark ? 'bg-ink-900/80 text-white' : 'bg-canvas/85'
-      } ${border && !dark ? 'hairline' : ''}`}
+      className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 px-3 backdrop-blur-md bg-surface/90 ${
+        border ? 'border-b border-ink-200/60' : ''
+      }`}
     >
       {back && (
         <button
           type="button"
           onClick={() => (onBack ? onBack() : nav(-1))}
           aria-label="Go back"
-          className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors ${
-            dark ? 'hover:bg-white/10' : 'hover:bg-ink-100'
-          }`}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-700 hover:bg-ink-100"
         >
-          <ArrowLeft size={20} strokeWidth={2} />
+          <ArrowLeft size={22} strokeWidth={2} aria-hidden />
         </button>
       )}
       <div className={`min-w-0 flex-1 ${back ? '' : 'pl-2'}`}>
         {title && (
-          <h1 className={`truncate font-display text-lg font-semibold ${dark ? 'text-white' : ''}`}>{title}</h1>
+          <h1 className="truncate font-display text-md font-bold text-ink-900">{title}</h1>
         )}
         {subtitle && (
-          <p className={`truncate text-xs ${dark ? 'text-white/60' : 'text-ink-500'}`}>{subtitle}</p>
+          <p className="truncate text-xs text-ink-500">{subtitle}</p>
         )}
       </div>
       {right && <div className="flex shrink-0 items-center gap-1 pr-1">{right}</div>}
@@ -69,27 +180,23 @@ export function IconButton({
   label,
   onClick,
   badge,
-  tone = 'light',
 }: {
-  icon: LucideIcon
+  icon: any
   label: string
   onClick?: () => void
   badge?: number
-  tone?: 'light' | 'dark'
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`relative grid h-11 w-11 place-items-center rounded-full transition-colors ${
-        tone === 'dark' ? 'text-white hover:bg-white/10' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900'
-      }`}
+      className="relative grid h-11 w-11 place-items-center rounded-full text-ink-600 hover:bg-ink-100 hover:text-ink-900"
     >
-      <Icon size={20} strokeWidth={1.9} />
+      <Icon size={20} strokeWidth={2} aria-hidden />
       {!!badge && (
         <span
-          className="absolute right-1.5 top-1.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-bad-base px-1 text-[10px] font-bold text-white tnum"
+          className="absolute right-1.5 top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-bad-base px-1 text-2xs font-bold text-white tnum"
           aria-label={`${badge} unread`}
         >
           {badge > 9 ? '9+' : badge}
@@ -98,8 +205,6 @@ export function IconButton({
     </button>
   )
 }
-
-/* ------------------------------------------------------------- Primitives */
 
 export function SectionHeader({
   title,
@@ -117,7 +222,7 @@ export function SectionHeader({
         <button
           type="button"
           onClick={onAction}
-          className="rounded text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+          className="tap -mr-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700 active:bg-brand-50"
         >
           {action}
         </button>
@@ -135,7 +240,7 @@ export function Stat({
   value: string | number
   label: string
   tone?: 'neutral' | 'ok' | 'bad' | 'info'
-  icon?: LucideIcon
+  icon?: any
 }) {
   const tones = {
     neutral: 'text-ink-900',
@@ -144,12 +249,12 @@ export function Stat({
     info: 'text-info-base',
   }
   return (
-    <div className="card px-3.5 py-3">
+    <div className="card px-2.5 py-3">
       {Icon && (
         <Icon size={16} strokeWidth={2} className={`mb-2 ${tones[tone]}`} aria-hidden />
       )}
       <div className={`font-display text-2xl font-semibold tnum ${tones[tone]}`}>{value}</div>
-      <div className="mt-0.5 text-xs leading-tight text-ink-500">{label}</div>
+      <div className="mt-0.5 break-words text-xs leading-tight text-ink-500">{label}</div>
     </div>
   )
 }
@@ -171,7 +276,7 @@ export function ListRow({
   onClick,
   danger,
 }: {
-  icon?: LucideIcon
+  icon?: any
   title: string
   meta?: string
   right?: ReactNode
@@ -212,7 +317,7 @@ export function EmptyState({
   body,
   action,
 }: {
-  icon: LucideIcon
+  icon: any
   title: string
   body: string
   action?: ReactNode

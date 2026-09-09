@@ -1,126 +1,95 @@
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Sun, Hand, Maximize, Camera, BookOpen, ScanSearch } from 'lucide-react'
-import { Screen, ScrollArea, AppBar } from '../components/UI'
-import { useApp } from '../store/app'
-import { THRESHOLDS } from '../lib/quality'
-
-const tips = [
-  { icon: Sun, title: 'Light it evenly', body: 'Move to indirect daylight, or tilt the pack so the reflection falls away from the text.' },
-  { icon: Hand, title: 'Hold it steady', body: 'Brace your elbows against your body or rest the pack on a surface before tapping the shutter.' },
-  { icon: Maximize, title: 'Fill the frame', body: 'Move closer until the declaration panel occupies most of the viewfinder.' },
-]
+import { ArrowLeft, AlertTriangle, ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react'
+import { Screen, ScrollArea } from '../components/UI'
+import { PackVisual } from '../components/PackVisual'
 
 export default function Retake() {
+  const { t } = useTranslation()
   const nav = useNavigate()
-  const { scans, lastScanId } = useApp()
-  const scan = scans.find((s) => s.id === lastScanId)
-  const q = scan?.quality
-
-  const metrics = q
-    ? [
-        {
-          label: 'Sharpness',
-          pct: Math.max(0, Math.min(100, Math.round((q.sharpness / (THRESHOLDS.sharpnessMin * 2)) * 100))),
-          ok: q.sharpness >= THRESHOLDS.sharpnessMin,
-          note: q.sharpness >= THRESHOLDS.sharpnessMin ? 'Sharp enough to read' : 'Below the readable threshold',
-        },
-        {
-          label: 'Glare',
-          pct: Math.round(q.glare * 100),
-          ok: q.glare <= THRESHOLDS.glareMax,
-          note: q.glare <= THRESHOLDS.glareMax ? 'Within limits' : `Above the ${Math.round(THRESHOLDS.glareMax * 100)}% limit`,
-        },
-        {
-          label: 'Brightness',
-          pct: Math.round((q.luma / 255) * 100),
-          ok: q.luma >= THRESHOLDS.lumaMin && q.luma <= THRESHOLDS.lumaMax,
-          note: q.luma < THRESHOLDS.lumaMin ? 'Too dark' : q.luma > THRESHOLDS.lumaMax ? 'Overexposed' : 'Within range',
-        },
-      ]
-    : []
 
   return (
     <Screen>
-      <AppBar back onBack={() => nav('/app/scan')} title="Retake needed" />
+      <header className="sticky top-0 z-30 flex min-h-[60px] items-center gap-2 px-3 border-b border-ink-200/60 bg-surface/90 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={() => nav('/app/scan')}
+          aria-label={t('common.back')}
+          className="grid h-11 w-11 place-items-center rounded-full text-ink-600 hover:bg-ink-100"
+        >
+          <ArrowLeft size={22} strokeWidth={2} aria-hidden />
+        </button>
+        <h1 className="font-display text-md font-semibold text-ink-900">
+          {t('retake.title')}
+        </h1>
+      </header>
 
-      <ScrollArea className="pb-6">
-        <div className="gutter pt-4">
-          <div className="flex items-start gap-3.5 rounded-xl bg-warn-soft p-4" role="status">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-warn-base text-white">
-              <ScanSearch size={21} strokeWidth={2} aria-hidden />
+      <ScrollArea className="gutter pb-8">
+        {/* Photo with Glare Specular Highlight */}
+        <div className="relative mt-4 overflow-hidden rounded-3xl border border-ink-200 shadow-md">
+          <PackVisual product="cashew" glare={true} className="h-44 w-full" />
+        </div>
+
+        {/* Warning Callout Box */}
+        <div className="mt-5 rounded-2xl border border-warn-base/30 bg-warn-soft p-4">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-warn-base text-white shadow-sm">
+              <AlertTriangle size={20} strokeWidth={2.4} aria-hidden />
             </span>
-            <div className="min-w-0">
-              <h1 className="font-display text-lg font-semibold text-warn-text">We could not read this label</h1>
-              <p className="mt-1 text-sm leading-relaxed text-warn-text/85">
-                No verdict was issued. CheckMyPack never accuses a product on the basis of an
-                unreadable photo.
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-md font-bold text-warn-text">
+                {t('retake.heading')}
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-warn-text/90">
+                {t('retake.sub')}
               </p>
             </div>
           </div>
         </div>
 
-        {q?.reasons?.length ? (
-          <div className="gutter pt-5">
-            <h2 className="eyebrow">What went wrong</h2>
-            <ul className="mt-2.5 space-y-1.5">
-              {q.reasons.map((r) => (
-                <li key={r} className="flex gap-2 text-sm leading-relaxed text-ink-600">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-bad-base" aria-hidden />
-                  {r}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        {metrics.length > 0 && (
-          <div className="gutter pt-6">
-            <h2 className="eyebrow">Quality gate</h2>
-            <div className="card mt-2.5 divide-y divide-ink-200 overflow-hidden">
-              {metrics.map((m) => (
-                <div key={m.label} className="px-4 py-3">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-sm font-medium text-ink-900">{m.label}</span>
-                    <span className={`text-xs font-semibold tnum ${m.ok ? 'text-ok-base' : 'text-bad-base'}`}>{m.pct}%</span>
-                  </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-100">
-                    <div className={`h-full rounded-full ${m.ok ? 'bg-ok-base' : 'bg-bad-base'}`} style={{ width: `${m.pct}%` }} />
-                  </div>
-                  <p className="mt-1.5 text-xs text-ink-500">{m.note}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="gutter pt-7">
-          <h2 className="font-display text-md font-semibold">How to fix it</h2>
-          <ul className="stagger mt-3 space-y-2.5">
-            {tips.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="card flex gap-3.5 p-4">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink-100 text-ink-600">
-                  <Icon size={17} strokeWidth={1.9} aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-ink-900">{title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-ink-500">{body}</p>
-                </div>
-              </li>
-            ))}
+        {/* Improvement Tips Checklist */}
+        <div className="mt-6">
+          <h3 className="font-display text-sm font-bold text-ink-900">
+            {t('retake.howToFix')}
+          </h3>
+          <ul className="mt-3 space-y-2.5">
+            <li className="flex items-center gap-3 rounded-xl bg-surface p-3 shadow-xs border border-ink-200/80">
+              <CheckCircle2 size={18} className="shrink-0 text-brand-600" aria-hidden />
+              <span className="text-xs font-medium text-ink-800">{t('retake.tip1')}</span>
+            </li>
+            <li className="flex items-center gap-3 rounded-xl bg-surface p-3 shadow-xs border border-ink-200/80">
+              <CheckCircle2 size={18} className="shrink-0 text-brand-600" aria-hidden />
+              <span className="text-xs font-medium text-ink-800">{t('retake.tip2')}</span>
+            </li>
+            <li className="flex items-center gap-3 rounded-xl bg-surface p-3 shadow-xs border border-ink-200/80">
+              <CheckCircle2 size={18} className="shrink-0 text-brand-600" aria-hidden />
+              <span className="text-xs font-medium text-ink-800">{t('retake.tip3')}</span>
+            </li>
           </ul>
         </div>
-      </ScrollArea>
 
-      <div className="safe-b gutter flex gap-2.5 border-t border-ink-200 bg-surface py-3.5">
-        <button type="button" onClick={() => nav('/app/guidelines')} className="btn-secondary flex-1">
-          <BookOpen size={17} strokeWidth={2} aria-hidden />
-          Guide
-        </button>
-        <button type="button" onClick={() => nav('/app/scan')} className="btn-primary flex-1">
-          <Camera size={17} strokeWidth={2} aria-hidden />
-          Retake photo
-        </button>
-      </div>
+        {/* Action Buttons */}
+        <div className="mt-7 space-y-3">
+          <button
+            type="button"
+            onClick={() => nav('/app/scan')}
+            className="btn-accent btn-block min-h-[48px] rounded-xl text-md font-semibold"
+          >
+            <RefreshCw size={18} strokeWidth={2.2} aria-hidden />
+            {t('retake.retakePhoto')}
+          </button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => nav('/app/guidelines')}
+              className="text-xs font-semibold text-accent-600 hover:text-accent-700 underline"
+            >
+              {t('retake.guide')}
+            </button>
+          </div>
+        </div>
+      </ScrollArea>
     </Screen>
   )
 }

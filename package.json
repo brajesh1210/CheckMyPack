@@ -5,17 +5,20 @@
   "type": "module",
   "description": "CheckMyPack \u2014 scan a packet, know the truth. LMPC 2011 + FSSAI label compliance (SIH26034).",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host",
-    "verify": "node scripts/verify-engine.mjs",
+    "verify": "node scripts/verify-engine.mjs && node scripts/verify-remote.mjs && node scripts/verify-sync.mjs && node scripts/verify-report.mjs && node scripts/verify-officer.mjs && node scripts/verify-i18n.mjs && node scripts/verify-ui.mjs && node scripts/verify-quality.mjs",
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android",
     "android:apk": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
-    "android:icons": "python scripts/gen-android-assets.py"
+    "android:icons": "python scripts/gen-android-assets.py",
+    "android:live": "npx cap sync android && npx cap run android --live-reload --host=0.0.0.0 --port=5173"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
     "@capacitor/camera": "^8.2.4",
     "@capacitor/cli": "^7.6.9",
     "@capacitor/core": "^8.5.1",
@@ -25,9 +28,12 @@
     "@capacitor/status-bar": "^8.0.3",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource/lexend": "^5.3.0",
+    "@supabase/supabase-js": "^2.109.0",
     "browser-image-compression": "^2.0.2",
     "i18next": "^23.15.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.42.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^15.0.2",
@@ -36,6 +42,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
