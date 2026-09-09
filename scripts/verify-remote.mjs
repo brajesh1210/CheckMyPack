@@ -11,7 +11,20 @@
 import { build } from 'esbuild'
 import { writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { pathToFileURL } from 'node:url'
 import { join } from 'node:path'
+
+/**
+ * Absolute path to a source file, as an import specifier.
+ *
+ * The generated entry file lives in the OS temp directory, so it must import
+ * the project by absolute path. On Windows process.cwd() returns backslashes,
+ * which esbuild treats as escape sequences inside the import string, mangling
+ * the path. Forward slashes are valid import specifiers on every platform.
+ */
+const ROOT = process.cwd().split('\\').join('/')
+const src = (p) => `${ROOT}/${p}`
+
 
 const dir = mkdtempSync(join(tmpdir(), 'cmp-remote-'))
 const entry = join(dir, 'entry.ts')
@@ -19,8 +32,8 @@ const entry = join(dir, 'entry.ts')
 writeFileSync(
   entry,
   `
-  export { remoteExtract, remoteConfigured } from '${process.cwd()}/src/lib/remoteExtract'
-  export { runEngine } from '${process.cwd()}/src/lib/engine'
+  export { remoteExtract, remoteConfigured } from '${src('src/lib/remoteExtract')}'
+  export { runEngine } from '${src('src/lib/engine')}'
   `,
 )
 
@@ -86,7 +99,7 @@ await build({
   },
 })
 
-const { remoteExtract, remoteConfigured, runEngine } = await import(out)
+const { remoteExtract, remoteConfigured, runEngine } = await import(pathToFileURL(out).href)
 
 console.log('Online-reader contract\n')
 
@@ -216,7 +229,7 @@ setOnline(true)
 {
   const dir2 = mkdtempSync(join(tmpdir(), 'cmp-unconf-'))
   const e2 = join(dir2, 'e.ts')
-  writeFileSync(e2, `export { remoteExtract, remoteConfigured } from '${process.cwd()}/src/lib/remoteExtract'`)
+  writeFileSync(e2, `export { remoteExtract, remoteConfigured } from '${src('src/lib/remoteExtract')}'`)
   const o2 = join(dir2, 'b.mjs')
   await build({
     entryPoints: [e2],
@@ -230,7 +243,7 @@ setOnline(true)
       'import.meta.env.VITE_SUPABASE_ANON_KEY': 'undefined',
     },
   })
-  const m2 = await import(o2)
+  const m2 = await import(pathToFileURL(o2).href)
   check('no endpoint means not configured', m2.remoteConfigured(), false)
 
   mockFetch(async () => {

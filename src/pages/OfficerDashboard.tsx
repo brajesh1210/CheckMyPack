@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, ClipboardList, Map, TriangleAlert, ShieldCheck, ChevronRight, TrendingUp } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, IconButton, SectionHeader, Stat } from '../components/UI'
 import BottomNav from '../components/BottomNav'
 import { useApp } from '../store/app'
+import { fetchHotspots, fetchOffenders, summarise, type OfficerSummary } from '../lib/officer'
 
 const trend = [88.4, 90.1, 89.6, 92.3, 93.8, 94.1, 95.6, 96.2]
 const months = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
@@ -38,21 +40,43 @@ function Sparkline() {
   )
 }
 
-const recent = [
-  { id: 'INS-4471', place: 'Karol Bagh Market, Delhi', status: 'VIOLATION', time: '32 min ago' },
-  { id: 'INS-4470', place: 'Sadar Bazaar, Delhi', status: 'PASS', time: '2 hours ago' },
-  { id: 'INS-4468', place: 'Lajpat Nagar, Delhi', status: 'PASS', time: '5 hours ago' },
-] as const
-
 export default function OfficerDashboard() {
   const nav = useNavigate()
   const user = useApp((s) => s.user)
+  const scans = useApp((s) => s.scans)
+  const [summary, setSummary] = useState<OfficerSummary | null>(null)
+  const [live, setLive] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void Promise.all([fetchHotspots(), fetchOffenders()]).then(([h, o]) => {
+      if (cancelled) return
+      setSummary(summarise(h.data, o.data))
+      setLive(h.live && o.live)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // The compliance rate is the inverse of the violation rate.
+  const complianceRate = summary ? (100 - summary.violationRate).toFixed(1) : '—'
+
+  // The three most recent scans on this device, shown as the officer's own
+  // activity feed. Aggregate views are deliberately not drillable to
+  // individual rows.
+  const recent = scans.slice(0, 3).map((s) => ({
+    id: s.id,
+    place: s.place,
+    status: s.verdict,
+    time: relativeTime(s.createdAt),
+  }))
 
   return (
     <Screen>
       <AppBar
         title={<span className="text-md font-semibold">{user?.name || 'Inspector'}</span>}
-        subtitle="Legal Metrology · Delhi circle"
+        subtitle={live ? 'Legal Metrology · all districts' : 'Legal Metrology · this device'}
         right={<IconButton icon={Bell} label="Notifications" badge={5} />}
       />
 
@@ -63,12 +87,16 @@ export default function OfficerDashboard() {
             <div className="flex items-baseline justify-between gap-3">
               <div>
                 <p className="eyebrow">Compliance rate</p>
-                <p className="mt-1.5 font-display text-3xl font-semibold text-ink-900 tnum">96.2%</p>
+                <p className="mt-1.5 font-display text-3xl font-semibold text-ink-900 tnum">
+                  {summary ? `${complianceRate}%` : '—'}
+                </p>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-md bg-ok-soft px-2 py-1 text-xs font-semibold text-ok-text">
-                <TrendingUp size={13} strokeWidth={2.4} aria-hidden />
-                +1.8 pts
-              </span>
+              {summary && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-ink-100 px-2 py-1 text-xs font-semibold text-ink-600 tnum">
+                  <TrendingUp size={13} strokeWidth={2.4} aria-hidden />
+                  {summary.totalScans} {summary.totalScans === 1 ? 'inspection' : 'inspections'}
+                </span>
+              )}
             </div>
             <div className="mt-4">
               <Sparkline />
@@ -155,4 +183,15 @@ export default function OfficerDashboard() {
       <BottomNav />
     </Screen>
   )
+}
+
+/** "32 min ago" style formatting for the activity feed. */
+function relativeTime(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`
+  const days = Math.round(hours / 24)
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`
 }

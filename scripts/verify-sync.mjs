@@ -11,7 +11,20 @@
 import { build } from 'esbuild'
 import { writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { pathToFileURL } from 'node:url'
 import { join } from 'node:path'
+
+/**
+ * Absolute path to a source file, as an import specifier.
+ *
+ * The generated entry file lives in the OS temp directory, so it must import
+ * the project by absolute path. On Windows process.cwd() returns backslashes,
+ * which esbuild treats as escape sequences inside the import string, mangling
+ * the path. Forward slashes are valid import specifiers on every platform.
+ */
+const ROOT = process.cwd().split('\\').join('/')
+const src = (p) => `${ROOT}/${p}`
+
 
 let failures = 0
 function check(name, actual, expected) {
@@ -89,7 +102,7 @@ const dir = mkdtempSync(join(tmpdir(), 'cmp-sync-'))
 const entry = join(dir, 'entry.ts')
 writeFileSync(
   entry,
-  `export { queueScan, queueComplaint, flush, pendingCount, scanToRow } from '${process.cwd()}/src/lib/sync'`,
+  `export { queueScan, queueComplaint, flush, pendingCount, scanToRow } from '${src('src/lib/sync')}'`,
 )
 const out = join(dir, 'bundle.mjs')
 
@@ -119,7 +132,7 @@ await build({
   plugins: [stubPlugin],
 })
 
-const { queueScan, queueComplaint, flush, pendingCount, scanToRow } = await import(out)
+const { queueScan, queueComplaint, flush, pendingCount, scanToRow } = await import(pathToFileURL(out).href)
 
 globalThis.__client = fakeClient
 globalThis.__userId = 'user-1'

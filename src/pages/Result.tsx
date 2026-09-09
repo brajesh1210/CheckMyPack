@@ -3,11 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   ShieldCheck, TriangleAlert, Check, X, Volume2, Square, Share2, FileText, ChevronRight,
   Scale, RotateCcw, CalendarX, Barcode, WifiOff,
+  FileDown,
 } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, EmptyState } from '../components/UI'
 import { useApp } from '../store/app'
 import { speak, stopSpeaking, speechSupported, verdictScript } from '../lib/speech'
-import { shareScan } from '../lib/share'
+import { shareScan, shareReportPdf } from '../lib/share'
 
 export default function Result() {
   const nav = useNavigate()
@@ -16,6 +17,7 @@ export default function Result() {
   const scan = useMemo(() => scans.find((s) => s.id === (id ?? lastScanId)), [scans, id, lastScanId])
   const [focused, setFocused] = useState<string | null>(null)
   const [speaking, setSpeaking] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   const violations = scan?.findings.filter((f) => !f.passed) ?? []
   const bad = scan?.verdict === 'VIOLATION'
@@ -271,9 +273,20 @@ export default function Result() {
         <button type="button" onClick={() => nav('/app/scan')} className="btn-secondary" aria-label="Scan another pack">
           <RotateCcw size={17} strokeWidth={2} aria-hidden />
         </button>
-        <button type="button" onClick={() => shareScan(scan)} className="btn-secondary flex-1">
+        <button type="button" onClick={() => shareScan(scan)} className="btn-secondary" aria-label="Share summary">
           <Share2 size={17} strokeWidth={2} aria-hidden />
-          Share
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setPdfBusy(true)
+            void shareReportPdf(scan, { place: scan.place }).finally(() => setPdfBusy(false))
+          }}
+          disabled={pdfBusy}
+          className="btn-secondary flex-1 disabled:opacity-60"
+        >
+          <FileDown size={17} strokeWidth={2} aria-hidden />
+          {pdfBusy ? 'Preparing…' : 'PDF'}
         </button>
         {bad ? (
           <button type="button" onClick={() => nav(`/app/complaint?scan=${scan.id}`)} className="btn-danger flex-1">

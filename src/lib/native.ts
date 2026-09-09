@@ -114,3 +114,42 @@ export async function onAuthDeepLink(
     return () => {}
   }
 }
+
+/**
+ * Writes a binary file to the device's Documents folder and hands it to the
+ * system share sheet. Used for report PDFs, which are too large to pass as a
+ * data URL through the share intent.
+ *
+ * Returns false on web or if anything fails, so the caller can fall back to a
+ * browser download.
+ */
+export async function shareBinaryFile(
+  filename: string,
+  blob: Blob,
+  title: string,
+): Promise<boolean> {
+  if (!isNative()) return false
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+    const { Share } = await import('@capacitor/share')
+
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result).split(',')[1] ?? '')
+      fr.onerror = () => reject(fr.error)
+      fr.readAsDataURL(blob)
+    })
+
+    const written = await Filesystem.writeFile({
+      path: filename,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true,
+    })
+
+    await Share.share({ title, url: written.uri, dialogTitle: title })
+    return true
+  } catch {
+    return false
+  }
+}

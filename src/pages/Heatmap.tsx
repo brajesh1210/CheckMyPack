@@ -1,30 +1,50 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Layers, Info } from 'lucide-react'
 import { Screen, ScrollArea, AppBar } from '../components/UI'
 import BottomNav from '../components/BottomNav'
+import { fetchHotspots, plottable, tierFor, type PlottedHotspot } from '../lib/officer'
 
-type Spot = { city: string; state: string; n: number; x: number; y: number }
+type Spot = PlottedHotspot & { city: string; n: number }
 
-const spots: Spot[] = [
-  { city: 'Mumbai', state: 'Maharashtra', n: 132, x: 27, y: 63 },
-  { city: 'Delhi', state: 'NCT', n: 84, x: 37, y: 30 },
-  { city: 'Rajkot', state: 'Gujarat', n: 74, x: 20, y: 51 },
-  { city: 'Kolkata', state: 'West Bengal', n: 61, x: 70, y: 51 },
-  { city: 'Chennai', state: 'Tamil Nadu', n: 47, x: 45, y: 84 },
-  { city: 'Bengaluru', state: 'Karnataka', n: 39, x: 37, y: 79 },
-  { city: 'Lucknow', state: 'Uttar Pradesh', n: 33, x: 47, y: 37 },
-  { city: 'Guwahati', state: 'Assam', n: 18, x: 82, y: 40 },
-]
-
-const tier = (n: number) => (n >= 80 ? 'high' : n >= 40 ? 'medium' : 'low')
 const tierColor = { high: '#C62828', medium: '#B26B00', low: '#2E7D32' } as const
 
 export default function Heatmap() {
-  const [sel, setSel] = useState<Spot | null>(spots[0])
+  const [spots, setSpots] = useState<Spot[]>([])
+  const [live, setLive] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [sel, setSel] = useState<Spot | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchHotspots().then(({ data, live }) => {
+      if (cancelled) return
+      const plotted = plottable(data).map((h) => ({
+        ...h,
+        city: h.district,
+        n: h.violations,
+      }))
+      setSpots(plotted)
+      setLive(live)
+      setSel(plotted[0] ?? null)
+      setLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <Screen>
-      <AppBar title="Enforcement map" subtitle="Violations reported this quarter" />
+      <AppBar
+        title="Enforcement map"
+        subtitle={
+          loading
+            ? 'Loading reports'
+            : live
+              ? 'Violations reported across all users'
+              : 'Violations from scans on this device'
+        }
+      />
 
       <ScrollArea className="pb-6">
         {/* ------------------------------------------------------------- map */}
@@ -41,10 +61,10 @@ export default function Heatmap() {
               />
               {/* heat halos */}
               {spots.map((s) => {
-                const t = tier(s.n)
+                const t = tierFor(s.violationRate)
                 return (
                   <circle
-                    key={`halo-${s.city}`}
+                    key={`halo-${s.district}`}
                     cx={s.x}
                     cy={s.y}
                     r={Math.max(4, s.n / 14)}
@@ -55,10 +75,10 @@ export default function Heatmap() {
               })}
               {/* markers */}
               {spots.map((s) => {
-                const t = tier(s.n)
-                const active = sel?.city === s.city
+                const t = tierFor(s.violationRate)
+                const active = sel?.district === s.district
                 return (
-                  <g key={s.city} onClick={() => setSel(s)} style={{ cursor: 'pointer' }}>
+                  <g key={s.district} onClick={() => setSel(s)} style={{ cursor: 'pointer' }}>
                     <circle cx={s.x} cy={s.y} r={active ? 3.2 : 2.3} fill={tierColor[t]} stroke="#fff" strokeWidth={active ? 1.2 : 0.9} />
                     {/* generous invisible hit area */}
                     <circle cx={s.x} cy={s.y} r="7" fill="transparent" />
@@ -69,12 +89,12 @@ export default function Heatmap() {
 
             {/* legend */}
             <div className="absolute bottom-2.5 left-2.5 rounded-lg bg-surface/95 px-2.5 py-2 shadow-sm backdrop-blur">
-              <p className="mb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-ink-500">Violations</p>
+              <p className="mb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-ink-500">Violation rate</p>
               <ul className="space-y-1">
                 {[
-                  ['high', '80+'],
-                  ['medium', '40–79'],
-                  ['low', 'under 40'],
+                  ['high', '50%+ of scans'],
+                  ['medium', '20–49%'],
+                  ['low', 'under 20%'],
                 ].map(([t, label]) => (
                   <li key={t} className="flex items-center gap-1.5 text-2xs text-ink-600">
                     <span className="h-2 w-2 rounded-full" style={{ background: tierColor[t as keyof typeof tierColor] }} aria-hidden />
@@ -90,13 +110,15 @@ export default function Heatmap() {
             <div className="mt-2.5 card flex items-center gap-3.5 p-4" aria-live="polite">
               <span
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-lg font-display text-sm font-bold text-white tnum"
-                style={{ background: tierColor[tier(sel.n)] }}
+                style={{ background: tierColor[tierFor(sel.violationRate)] }}
               >
                 {sel.n}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-md font-semibold text-ink-900">{sel.city}</p>
-                <p className="truncate text-sm text-ink-500">{sel.state} · {tier(sel.n)} priority</p>
+                <p className="truncate text-sm text-ink-500">
+                  {sel.state} · {sel.violationRate}% of {sel.totalScans} scans · {tierFor(sel.violationRate)} priority
+                </p>
               </div>
             </div>
           )}
@@ -120,9 +142,9 @@ export default function Heatmap() {
               <tbody className="divide-y divide-ink-200">
                 {spots.map((s) => (
                   <tr
-                    key={s.city}
+                    key={s.district}
                     onClick={() => setSel(s)}
-                    className={`cursor-pointer transition-colors hover:bg-ink-50 ${sel?.city === s.city ? 'bg-brand-50' : ''}`}
+                    className={`cursor-pointer transition-colors hover:bg-ink-50 ${sel?.district === s.district ? 'bg-brand-50' : ''}`}
                   >
                     <th scope="row" className="px-4 py-2.5 font-medium text-ink-900">
                       {s.city}
@@ -130,14 +152,20 @@ export default function Heatmap() {
                     </th>
                     <td className="px-4 py-2.5 text-right font-semibold text-ink-800 tnum">{s.n}</td>
                     <td className="px-4 py-2.5 text-right">
-                      <span className={tier(s.n) === 'high' ? 'badge-bad' : tier(s.n) === 'medium' ? 'badge-warn' : 'badge-ok'}>
-                        {tier(s.n)}
+                      <span className={tierFor(s.violationRate) === 'high' ? 'badge-bad' : tierFor(s.violationRate) === 'medium' ? 'badge-warn' : 'badge-ok'}>
+                        {tierFor(s.violationRate)}
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {!loading && spots.length === 0 && (
+              <p className="px-4 py-6 text-center text-sm text-ink-500">
+                No violations have been reported yet. Scans appear here once
+                they are filed.
+              </p>
+            )}
           </div>
         </section>
 
