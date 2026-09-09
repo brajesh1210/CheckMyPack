@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingBag, ShieldCheck, Factory, ArrowRight, Check } from 'lucide-react'
+import { ShoppingBag, ShieldCheck, ArrowRight, Check } from 'lucide-react'
 import { Screen, ScrollArea, AppBar } from '../components/UI'
 import { useApp, type Role } from '../store/app'
 
@@ -19,13 +19,6 @@ const roles = [
     titleKey: 'role.officerTitle',
     bodyKey: 'role.officerBody',
     accent: 'text-info-base bg-info-soft ring-info-base',
-  },
-  {
-    id: 'manufacturer' as const,
-    icon: Factory,
-    titleKey: 'role.makerTitle',
-    bodyKey: 'role.makerBody',
-    accent: 'text-ink-700 bg-ink-100 ring-ink-700',
   },
 ]
 

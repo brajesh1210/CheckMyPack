@@ -78,6 +78,11 @@
   /* ---- App shell: phone-width column, centred on large screens ---- */
   .shell {
     @apply relative mx-auto flex w-full flex-col bg-canvas;
+    /* viewport-fit=cover lets the app draw under the status bar and the
+       notch. Without this the first heading slides underneath them, which is
+       what "everything starts too high" looks like on a real phone. */
+    padding-top: max(env(safe-area-inset-top), 0px);
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
     /* Fixed height, not min-height: the shell must never grow past one
        screen, or the inner scroll area stops being the scroller. */
     height: 100%;
@@ -192,6 +197,8 @@
   .stagger > *:nth-child(8) { animation-delay: 0.37s; }
 
   .safe-b { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+  .safe-t { padding-top: max(env(safe-area-inset-top), 0px); }
+  .safe-x { padding-left: max(env(safe-area-inset-left), 0px); padding-right: max(env(safe-area-inset-right), 0px); }
 
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }

@@ -25,7 +25,7 @@
     "legal": "Every verdict cites the Legal Metrology (Packaged Commodities) Rules, 2011 and FSSAI labelling regulations.",
     "officerLink": "Officer / Department login →",
     "eyebrow": "Legal Metrology · FSSAI",
-    "hero": "Know what the label is hiding.",
+    "hero": "Scan the packet. Know the truth.",
     "startScanning": "Start scanning",
     "freeNote": "Free · No Play Store · Installs straight from the browser",
     "howItHelps": "How it helps",
@@ -92,9 +92,7 @@
     "consumerTitle": "Consumer",
     "consumerBody": "Scan what you buy, learn your rights, and file a complaint when a pack is non-compliant.",
     "officerTitle": "Enforcement officer",
-    "officerBody": "Record field inspections, build cited case files, and track violation hotspots on a map.",
-    "makerTitle": "Manufacturer",
-    "makerBody": "Pre-check artwork before a print run and catch missing declarations early."
+    "officerBody": "Record field inspections, build cited case files, and track violation hotspots on a map."
   },
   "home": {
     "offline": "Offline — scans use on-device reading and sync later.",

@@ -65,8 +65,15 @@ export async function initNativeChrome() {
   if (!isNative()) return
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar')
+    // Android 15 forces apps to draw edge-to-edge whether they ask for it or
+    // not. Make it explicit so the CSS safe-area insets resolve to a real
+    // value on every device instead of only on the ones that happen to.
+    try {
+      await StatusBar.setOverlaysWebView({ overlay: true })
+    } catch {
+      /* iOS, or an older plugin */
+    }
     await StatusBar.setStyle({ style: Style.Dark })
-    await StatusBar.setBackgroundColor({ color: '#1D5322' })
   } catch {
     /* status bar unavailable */
   }

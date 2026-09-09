@@ -5,7 +5,7 @@ import { queueScan } from '../lib/sync'
 import { rulesMeta } from '../lib/engine'
 import { setLanguage } from '../i18n'
 
-export type Role = 'consumer' | 'officer' | 'manufacturer' | null
+export type Role = 'consumer' | 'officer' | null
 export type User = { name: string; email: string; provider: 'google' | 'gov' | 'guest' } | null
 
 /** A scan trimmed down for long-term storage (full OCR text is dropped). */
