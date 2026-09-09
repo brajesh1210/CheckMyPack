@@ -108,11 +108,9 @@ curl -X POST https://YOUR_PROJECT_REF.supabase.co/functions/v1/extract-label ^
   -d "{\"image\":\"<base64 jpeg>\"}"
 ```
 
-Watch the logs live while you scan:
-
-```cmd
-supabase functions logs extract-label --tail
-```
+Watch the logs while you scan, in the dashboard: project → **Logs → Edge
+Functions**. The CLI has no stable `functions logs` subcommand — it moves
+between versions, so the dashboard is the reliable place.
 
 ## Forcing on-device reading
 
@@ -254,3 +252,46 @@ or delete policy**. A consumer cannot alter or withdraw a scan after filing it.
 Findings are stored alongside the verdict and the rules version, so if the rule
 engine is later corrected, historical scans can be re-adjudicated instead of
 silently carrying a wrong call forward.
+
+---
+
+# Testing the deployed function
+
+Do this **before** building the app. If the Gemini model name has been retired,
+the function returns an error, and the app quietly falls back to Tesseract —
+which looks exactly like "still getting retakes". One call settles it.
+
+From PowerShell, in the project root:
+
+```powershell
+$b = [Convert]::ToBase64String([IO.File]::ReadAllBytes("test-packs\test-pack-compliant.jpg"))
+$body = @{ image = $b; mimeType = "image/jpeg" } | ConvertTo-Json
+Invoke-RestMethod `
+  -Uri "https://YOUR_PROJECT_REF.supabase.co/functions/v1/extract-label" `
+  -Method Post -Body $body -ContentType "application/json"
+```
+
+**Good** — a JSON object starting with `source: gemini`, plus the fields it read:
+
+```
+source model            fields
+------ -----            ------
+gemini gemini-2.0-flash @{mrp=₹45.00; net_qty=200 g; expiry=12/2027; ...}
+```
+
+**Bad** — `error: The reading service is unavailable.` Check why:
+
+Look at the function's logs in the dashboard (project → **Logs → Edge
+Functions**).
+
+If the log shows `models/gemini-2.0-flash is not found`, edit `GEMINI_MODEL` at
+the top of `supabase/functions/extract-label/index.ts` to a current model
+(for example `gemini-2.5-flash`), then redeploy:
+
+```cmd
+supabase functions deploy extract-label --no-verify-jwt
+```
+
+`test-packs/test-pack-violation.jpg` is the second fixture: it deliberately has
+no MRP and no customer care, so a healthy reader still returns fields but the
+engine reports a violation.
