@@ -5,6 +5,8 @@ import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, Divider } from '../components/UI'
 import { Mark } from '../components/Brand'
 import { useApp } from '../store/app'
+import { signInWithGoogle, signInAsGuest } from '../lib/auth'
+import { backendConfigured } from '../lib/supabase'
 
 function GoogleGlyph() {
   return (
@@ -27,26 +29,60 @@ export default function Login() {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  const go = (provider: 'google' | 'gov' | 'guest', name: string) => {
+  /**
+   * Guest and government-ID sign-in are local identities: nothing is verified,
+   * and the app is fully usable that way.
+   */
+  const goLocal = (provider: 'gov' | 'guest', name: string) => {
     setBusy(provider)
-    setTimeout(() => {
-      setUser({ name, email: email || `${provider}@checkmypack.in`, provider })
+    setUser({ name, email: email || '', provider })
+    nav('/role')
+  }
+
+  /**
+   * Real Google sign-in when a backend is configured. Without one there is
+   * nothing to authenticate against, so fall back to a guest session rather
+   * than pretending the user signed in.
+   */
+  const goGoogle = async () => {
+    setError('')
+
+    if (!backendConfigured()) {
+      setBusy('guest')
+      setUser(signInAsGuest().user)
       nav('/role')
-    }, 550)
+      return
+    }
+
+    setBusy('google')
+    const result = await signInWithGoogle()
+
+    if (result.error) {
+      setError(result.error)
+      setBusy(null)
+      return
+    }
+
+    // On success the browser is navigating to Google, or the native deep link
+    // will complete the exchange; either way this screen is on its way out.
+    if (result.user) {
+      setUser(result.user)
+      nav('/role')
+    }
   }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.includes('@')) {
-      setError('Enter a valid email address, for example name@example.com.')
+      setError(t('auth.invalidEmail'))
       return
     }
     if (pw.length < 6) {
-      setError('Your password must be at least 6 characters long.')
+      setError(t('auth.shortPassword'))
       return
     }
     setError('')
-    go('google', email.split('@')[0])
+    void goGoogle()
   }
 
   return (
@@ -120,15 +156,15 @@ export default function Login() {
         </div>
 
         <div className="space-y-2.5">
-          <button type="button" onClick={() => go('google', 'Aarav Sharma')} className="btn-secondary btn-block" disabled={!!busy}>
+          <button type="button" onClick={() => void goGoogle()} className="btn-secondary btn-block" disabled={!!busy}>
             <GoogleGlyph />
             {t('auth.google')}
           </button>
-          <button type="button" onClick={() => go('gov', 'Insp. R. Verma')} className="btn-secondary btn-block" disabled={!!busy}>
+          <button type="button" onClick={() => goLocal('gov', 'Insp. R. Verma')} className="btn-secondary btn-block" disabled={!!busy}>
             <ShieldCheck size={18} strokeWidth={1.9} className="text-info-base" aria-hidden />
             {t('auth.govId')}
           </button>
-          <button type="button" onClick={() => go('guest', 'Guest')} className="btn-ghost btn-block" disabled={!!busy}>
+          <button type="button" onClick={() => goLocal('guest', signInAsGuest().user!.name)} className="btn-ghost btn-block" disabled={!!busy}>
             {t('auth.guest')}
           </button>
         </div>

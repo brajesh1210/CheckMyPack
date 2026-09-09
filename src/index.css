@@ -12,6 +12,20 @@
   :root {
     --shell-max: 448px;
     --nav-h: 64px;
+
+    /* Semantic colours for SVG, which cannot take Tailwind classes.
+       These mirror the `ok` / `warn` / `bad` / `info` scales in
+       tailwind.config.js — change both together. */
+    --cmp-ok: theme('colors.ok.base');
+    --cmp-ok-soft: theme('colors.ok.soft');
+    --cmp-ok-line: #ADD5B2;
+    --cmp-warn: theme('colors.warn.base');
+    --cmp-bad: theme('colors.bad.base');
+    --cmp-bad-soft: theme('colors.bad.soft');
+    --cmp-bad-line: #E5B4B4;
+    --cmp-ink: theme('colors.ink.900');
+    --cmp-map-fill: theme('colors.info.soft');
+    --cmp-map-line: #B9CEE3;
   }
 
   html {

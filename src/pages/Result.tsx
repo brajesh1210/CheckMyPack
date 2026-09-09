@@ -180,15 +180,15 @@ export default function Result() {
                     top: `${f.box!.y}%`,
                     width: `${f.box!.w}%`,
                     height: `${f.box!.h}%`,
-                    borderColor: ok ? '#2E7D32' : '#C62828',
+                    borderColor: ok ? 'var(--cmp-ok)' : 'var(--cmp-bad)',
                     background: active ? (ok ? 'rgba(46,125,50,0.22)' : 'rgba(198,40,40,0.22)') : 'transparent',
                     boxShadow: active ? `0 0 0 3px ${ok ? 'rgba(46,125,50,0.3)' : 'rgba(198,40,40,0.3)'}` : 'none',
                   }}
                 >
                   {active && (
                     <span
-                      className="absolute -top-1 left-0 -translate-y-full whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                      style={{ background: ok ? '#2E7D32' : '#C62828' }}
+                      className="absolute -top-1 left-0 -translate-y-full whitespace-nowrap rounded px-1.5 py-0.5 text-2xs font-semibold text-white"
+                      style={{ background: ok ? 'var(--cmp-ok)' : 'var(--cmp-bad)' }}
                     >
                       {f.label}
                     </span>

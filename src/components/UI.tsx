@@ -86,10 +86,10 @@ export function IconButton({
         tone === 'dark' ? 'text-white hover:bg-white/10' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900'
       }`}
     >
-      <Icon size={20} strokeWidth={1.9} />
+      <Icon size={20} strokeWidth={1.9} aria-hidden />
       {!!badge && (
         <span
-          className="absolute right-1.5 top-1.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-bad-base px-1 text-[10px] font-bold text-white tnum"
+          className="absolute right-1.5 top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-bad-base px-1 text-2xs font-bold text-white tnum"
           aria-label={`${badge} unread`}
         >
           {badge > 9 ? '9+' : badge}

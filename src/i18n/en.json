@@ -70,7 +70,9 @@
     "guest": "Explore as guest",
     "or": "or",
     "hidePassword": "Hide password",
-    "showPassword": "Show password"
+    "showPassword": "Show password",
+    "invalidEmail": "Enter a valid email address, for example name@example.com.",
+    "shortPassword": "Your password must be at least 6 characters long."
   },
   "nav": {
     "home": "Home",

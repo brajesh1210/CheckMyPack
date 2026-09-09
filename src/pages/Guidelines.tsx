@@ -28,7 +28,7 @@ const tips = [
 function FrameDiagram({ good }: { good: boolean }) {
   return (
     <svg viewBox="0 0 84 60" className="h-[60px] w-[84px]" aria-hidden>
-      <rect width="84" height="60" rx="6" fill={good ? '#E8F4E9' : '#FCEBEC'} />
+      <rect width="84" height="60" rx="6" fill={good ? 'var(--cmp-ok-soft)' : 'var(--cmp-bad-soft)'} />
       <rect
         x={good ? 16 : 32}
         y={good ? 10 : 20}
@@ -36,7 +36,7 @@ function FrameDiagram({ good }: { good: boolean }) {
         height={good ? 40 : 18}
         rx="2.5"
         fill="#fff"
-        stroke={good ? '#2E7D32' : '#C62828'}
+        stroke={good ? 'var(--cmp-ok)' : 'var(--cmp-bad)'}
         strokeWidth="1.6"
       />
       {(good ? [17, 23, 29, 35, 41] : [25, 29]).map((y) => (
@@ -47,7 +47,7 @@ function FrameDiagram({ good }: { good: boolean }) {
           width={good ? 34 : 15}
           height={good ? 3 : 1.6}
           rx="1"
-          fill={good ? '#ADD5B2' : '#E5B4B4'}
+          fill={good ? 'var(--cmp-ok-line)' : 'var(--cmp-bad-line)'}
         />
       ))}
     </svg>

@@ -81,7 +81,7 @@ export default function Processing() {
             aria-valuemax={100}
             aria-label={t('processing.ariaProgress')}
           >
-            <div className="h-full rounded-full bg-brand-500 transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
+            <div className="h-full w-full origin-left rounded-full bg-brand-500 transition-transform duration-300 ease-out" style={{ transform: `scaleX(${pct / 100})` }} />
           </div>
         </div>
 

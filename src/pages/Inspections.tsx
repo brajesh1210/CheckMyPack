@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, MapPin, ChevronRight } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, EmptyState } from '../components/UI'
@@ -16,6 +17,7 @@ const tabs = [
 
 export default function Inspections() {
   const { t } = useTranslation()
+  const nav = useNavigate()
   const scans = useApp((s) => s.scans)
   const [q, setQ] = useState('')
   const [tab, setTab] = useState<'all' | 'violations' | 'cleared'>('all')
@@ -84,7 +86,7 @@ export default function Inspections() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setTab(value)}
-                  className={`min-h-[36px] rounded-full px-3.5 text-sm font-medium transition-colors ${
+                  className={`min-h-[44px] rounded-full px-4 text-sm font-medium transition-colors ${
                     active ? 'bg-ink-900 text-white' : 'border border-ink-200 bg-surface text-ink-600 hover:border-ink-300 hover:text-ink-900'
                   }`}
                 >
@@ -104,7 +106,11 @@ export default function Inspections() {
             <ul className="stagger space-y-2.5">
               {list.map((c) => (
                 <li key={c.id}>
-                  <button type="button" className="card-interactive flex w-full items-start gap-3 p-4 text-left">
+                  <button
+                    type="button"
+                    onClick={() => nav(`/app/result/${c.id}`)}
+                    className="card-interactive flex w-full items-start gap-3 p-4 text-left"
+                  >
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
                         <span className="truncate text-md font-medium text-ink-900">{c.product}</span>

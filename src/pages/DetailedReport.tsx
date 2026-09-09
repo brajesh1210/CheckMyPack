@@ -25,7 +25,7 @@ function QRBlock({ seed }: { seed: string }) {
         const r = Math.floor(i / n)
         const c = i % n
         if (finder(r, c)) return null
-        return on ? <rect key={i} x={c} y={r} width="1" height="1" fill="#141814" /> : null
+        return on ? <rect key={i} x={c} y={r} width="1" height="1" fill="var(--cmp-ink)" /> : null
       })}
       {[
         [0, 0],
@@ -33,9 +33,9 @@ function QRBlock({ seed }: { seed: string }) {
         [n - 7, 0],
       ].map(([r, c]) => (
         <g key={`${r}-${c}`}>
-          <rect x={c} y={r} width="7" height="7" fill="#141814" />
+          <rect x={c} y={r} width="7" height="7" fill="var(--cmp-ink)" />
           <rect x={c + 1} y={r + 1} width="5" height="5" fill="#fff" />
-          <rect x={c + 2} y={r + 2} width="3" height="3" fill="#141814" />
+          <rect x={c + 2} y={r + 2} width="3" height="3" fill="var(--cmp-ink)" />
         </g>
       ))}
     </svg>

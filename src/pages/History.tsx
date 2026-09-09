@@ -60,7 +60,7 @@ export default function History() {
                     aria-selected={active}
                     type="button"
                     onClick={() => setFilter(value)}
-                    className={`min-h-[36px] shrink-0 rounded-full px-3.5 text-sm font-medium transition-colors ${
+                    className={`min-h-[44px] shrink-0 rounded-full px-4 text-sm font-medium transition-colors ${
                       active ? 'bg-ink-900 text-white' : 'border border-ink-200 bg-surface text-ink-600 hover:border-ink-300 hover:text-ink-900'
                     }`}
                   >

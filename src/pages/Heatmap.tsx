@@ -7,7 +7,7 @@ import { fetchHotspots, plottable, tierFor, type PlottedHotspot } from '../lib/o
 
 type Spot = PlottedHotspot & { city: string; n: number }
 
-const tierColor = { high: '#C62828', medium: '#B26B00', low: '#2E7D32' } as const
+const tierColor = { high: 'var(--cmp-bad)', medium: 'var(--cmp-warn)', low: 'var(--cmp-ok)' } as const
 
 export default function Heatmap() {
   const { t } = useTranslation()
@@ -56,8 +56,8 @@ export default function Heatmap() {
               {/* stylised landmass — schematic, not a survey map */}
               <path
                 d="M34 12 L44 8 L54 13 L62 11 L70 17 L78 16 L84 24 L88 34 L83 41 L86 47 L79 52 L74 49 L72 56 L66 62 L60 74 L54 86 L48 96 L42 88 L38 78 L33 70 L27 64 L21 56 L17 47 L14 38 L18 30 L24 24 L28 16 Z"
-                fill="#DCE7F2"
-                stroke="#B9CEE3"
+                fill="var(--cmp-map-fill)"
+                stroke="var(--cmp-map-line)"
                 strokeWidth="0.8"
                 strokeLinejoin="round"
               />

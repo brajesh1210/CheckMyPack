@@ -6,6 +6,7 @@ import {
 import { Screen, ScrollArea, AppBar, ListRow, SectionHeader } from '../components/UI'
 import BottomNav from '../components/BottomNav'
 import { useApp } from '../store/app'
+import { signOut } from '../lib/auth'
 
 export default function Profile() {
   const { t } = useTranslation()
@@ -13,9 +14,12 @@ export default function Profile() {
   const { user, role, lang, setLang, setUser, setRole, online, scans, voice, setVoice, clearScans } = useApp()
 
   const logout = () => {
+    // Clear the local session first so the UI responds immediately; revoking
+    // the server session is best-effort and must not block the user.
     setUser(null)
     setRole(null)
     nav('/')
+    void signOut()
   }
 
   const initials = (user?.name || 'Guest')
@@ -75,7 +79,7 @@ export default function Profile() {
                     type="button"
                     onClick={() => setLang(l)}
                     aria-pressed={lang === l}
-                    className={`min-h-[34px] rounded-md px-3 text-sm font-semibold transition-colors ${
+                    className={`min-h-[44px] rounded-md px-4 text-sm font-semibold transition-colors ${
                       lang === l ? 'bg-surface text-ink-900 shadow-xs' : 'text-ink-500 hover:text-ink-800'
                     }`}
                   >
