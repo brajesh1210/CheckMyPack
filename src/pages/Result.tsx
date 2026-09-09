@@ -65,7 +65,7 @@ export default function Result() {
         <EmptyState
           icon={FileText}
           title={t('result.none')}
-          body="This result is no longer stored on the device."
+          body={t('result.noneBody')}
           action={
             <button type="button" onClick={() => nav('/app/scan')} className="btn-primary btn-sm">
               {t('result.scanAPack')}

@@ -116,7 +116,9 @@
     "place": "Delhi, India",
     "morning": "Good morning",
     "afternoon": "Good afternoon",
-    "evening": "Good evening"
+    "evening": "Good evening",
+    "viewAll": "View all",
+    "noScansBody": "Scan your first packet to see its compliance verdict here."
   },
   "scan": {
     "title": "Scan label",
@@ -187,7 +189,8 @@
     "readAloud": "Read the verdict aloud",
     "allPresent": "Every declaration required by law is present and legible.",
     "tapBox": "Tap a box to see what was checked there.",
-    "noBoxes": "No text regions could be pinned to the image."
+    "noBoxes": "No text regions could be pinned to the image.",
+    "noneBody": "This result is no longer stored on the device."
   },
   "retake": {
     "title": "Retake needed",
@@ -222,7 +225,8 @@
     "verifyNote": "Scanning this code re-opens the record so an officer can confirm it was not altered.",
     "share": "Share",
     "savePdf": "Save PDF",
-    "complianceGrade": "Compliance grade"
+    "complianceGrade": "Compliance grade",
+    "unavailableBody": "This scan is no longer stored on the device."
   },
   "history": {
     "title": "Scan history",
@@ -236,7 +240,9 @@
     "filterAll": "All",
     "filterCompliant": "Compliant",
     "filterViolations": "Violations",
-    "filterRetakes": "Retakes"
+    "filterRetakes": "Retakes",
+    "noScansBody": "Every pack you scan is saved here, including offline ones.",
+    "nothingMatchesBody": "Try a different search term or clear the filter."
   },
   "complaint": {
     "title": "Report a violation",
@@ -301,7 +307,9 @@
     "localOnly": "On this device only",
     "online": "Online",
     "offlineState": "Offline",
-    "confirmClear": "Delete all stored scans? This cannot be undone."
+    "confirmClear": "Delete all stored scans? This cannot be undone.",
+    "voiceMeta": "Speak the verdict aloud after each scan",
+    "onDeviceMeta": "Labels are always read locally; nothing is uploaded"
   },
   "officer": {
     "dashboard": "Dashboard",
@@ -362,7 +370,10 @@
     "inspectionsLogged_one": "{{count}} inspection logged",
     "inspectionsLogged_other": "{{count}} inspections logged",
     "tryDifferentSearch": "Try a different search term or switch the filter.",
-    "rateExplainer": "Share of inspections where every mandatory declaration was present. A trend line will appear once several months of inspections have been recorded."
+    "rateExplainer": "Share of inspections where every mandatory declaration was present. A trend line will appear once several months of inspections have been recorded.",
+    "allCases": "All cases",
+    "inspectionCount_one": "{{count}} inspection",
+    "inspectionCount_other": "{{count}} inspections"
   },
   "common": {
     "back": "Back",

@@ -68,13 +68,13 @@ export default function Dashboard() {
 
         {/* ------------------------------------------------- recent scans */}
         <section className="gutter pt-7">
-          <SectionHeader title={t('home.recent')} action="View all" onAction={() => nav('/app/history')} />
+          <SectionHeader title={t('home.recent')} action={t('home.viewAll')} onAction={() => nav('/app/history')} />
           {scans.length === 0 ? (
             <div className="card">
               <EmptyState
                 icon={ScanLine}
                 title={t('home.noScans')}
-                body="Scan your first packet to see its compliance verdict here."
+                body={t('home.noScansBody')}
                 action={
                   <button type="button" onClick={() => nav('/app/scan')} className="btn-primary btn-sm">
                     {t('home.scanNow')}

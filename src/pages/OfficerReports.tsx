@@ -60,9 +60,9 @@ export default function OfficerReports() {
               ['Violations', summary.violations],
               ['Districts', summary.districtsCovered],
             ].map(([label, value]) => (
-              <div key={label} className="px-3 py-4 text-center">
+              <div key={label} className="px-2 py-4 text-center">
                 <p className="font-display text-2xl font-semibold text-ink-900 tnum">{value}</p>
-                <p className="mt-0.5 text-2xs uppercase tracking-[0.06em] text-ink-500">{label}</p>
+                <p className="mt-0.5 break-words text-2xs uppercase leading-tight tracking-[0.04em] text-ink-500">{label}</p>
               </div>
             ))}
           </div>
@@ -147,7 +147,7 @@ export default function OfficerReports() {
                     <tr key={h.district}>
                       <th scope="row" className="px-4 py-2.5 font-medium text-ink-900">
                         {h.district}
-                        {h.state && <span className="ml-1.5 font-normal text-ink-400">{h.state}</span>}
+                        {h.state && <span className="ml-1.5 font-normal text-ink-500">{h.state}</span>}
                       </th>
                       <td className="px-4 py-2.5 text-right text-ink-700 tnum">{h.totalScans}</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-ink-900 tnum">{h.violations}</td>

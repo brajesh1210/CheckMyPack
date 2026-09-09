@@ -53,7 +53,7 @@ export default function DetailedReport() {
     return (
       <Screen>
         <AppBar back title={t('result.detailedReport')} />
-        <EmptyState icon={FileText} title={t('report.unavailable')} body="This scan is no longer stored on the device."
+        <EmptyState icon={FileText} title={t('report.unavailable')} body={t('report.unavailableBody')}
           action={<button type="button" onClick={() => nav('/app/home')} className="btn-primary btn-sm">{t('report.goHome')}</button>} />
       </Screen>
     )

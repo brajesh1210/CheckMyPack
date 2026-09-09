@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useNavigate } from 'react-router-dom'
 import { Bell, ClipboardList, Map, TriangleAlert, ShieldCheck, ChevronRight, TrendingUp } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, IconButton, SectionHeader, Stat } from '../components/UI'
@@ -42,7 +43,7 @@ export default function OfficerDashboard() {
     id: s.id,
     place: s.place,
     status: s.verdict,
-    time: relativeTime(s.createdAt),
+    time: relativeTime(s.createdAt, t),
   }))
 
   return (
@@ -50,7 +51,7 @@ export default function OfficerDashboard() {
       <AppBar
         title={<span className="text-md font-semibold">{user?.name || 'Inspector'}</span>}
         subtitle={t(live ? 'officer.circleAll' : 'officer.circleLocal')}
-        right={<IconButton icon={Bell} label={t('home.notifications')} badge={5} />}
+        right={<IconButton icon={Bell} label={t('home.notifications')} />}
       />
 
       <ScrollArea className="pb-6">
@@ -67,7 +68,7 @@ export default function OfficerDashboard() {
               {summary && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-ink-100 px-2 py-1 text-xs font-semibold text-ink-600 tnum">
                   <TrendingUp size={13} strokeWidth={2.4} aria-hidden />
-                  {summary.totalScans} {summary.totalScans === 1 ? 'inspection' : 'inspections'}
+                  {t('officer.inspectionCount', { count: summary.totalScans })}
                 </span>
               )}
             </div>
@@ -80,9 +81,23 @@ export default function OfficerDashboard() {
         {/* ------------------------------------------------------------ stats */}
         <section className="gutter pt-5">
           <div className="grid grid-cols-3 gap-2.5">
-            <Stat value="8,432" label={t('officer.inspections')} icon={ClipboardList} />
-            <Stat value="9,621" label={t('home.compliant')} tone="ok" icon={ShieldCheck} />
-            <Stat value="811" label={t('home.violations')} tone="bad" icon={TriangleAlert} />
+            <Stat
+              value={summary ? summary.totalScans.toLocaleString('en-IN') : '—'}
+              label={t('officer.inspections')}
+              icon={ClipboardList}
+            />
+            <Stat
+              value={summary ? Math.max(0, summary.totalScans - summary.violations).toLocaleString('en-IN') : '—'}
+              label={t('home.compliant')}
+              tone="ok"
+              icon={ShieldCheck}
+            />
+            <Stat
+              value={summary ? summary.violations.toLocaleString('en-IN') : '—'}
+              label={t('home.violations')}
+              tone="bad"
+              icon={TriangleAlert}
+            />
           </div>
         </section>
 
@@ -110,7 +125,7 @@ export default function OfficerDashboard() {
 
         {/* ------------------------------------------------------ recent cases */}
         <section className="gutter pt-7">
-          <SectionHeader title={t('officer.recentInspections')} action="All cases" onAction={() => nav('/app/inspections')} />
+          <SectionHeader title={t('officer.recentInspections')} action={t('officer.allCases')} onAction={() => nav('/app/inspections')} />
           <ul className="space-y-2.5">
             {recent.map((r) => {
               const bad = r.status === 'VIOLATION'
@@ -150,12 +165,12 @@ export default function OfficerDashboard() {
 }
 
 /** "32 min ago" style formatting for the activity feed. */
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: TFunction): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} min ago`
+  if (mins < 1) return t('common.justNow')
+  if (mins < 60) return t('common.minAgo', { count: mins })
   const hours = Math.round(mins / 60)
-  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`
+  if (hours < 24) return t('common.hourAgo', { count: hours })
   const days = Math.round(hours / 24)
-  return `${days} ${days === 1 ? 'day' : 'days'} ago`
+  return t('common.dayAgo', { count: days })
 }

@@ -254,7 +254,7 @@ export default function Scan() {
         <button
           type="button"
           onClick={() => nav('/app/guidelines')}
-          className="mx-auto mt-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-white/55 transition-colors hover:text-white"
+          className="mx-auto -mb-1.5 flex min-h-[44px] items-center gap-1.5 rounded-lg px-4 text-xs text-white/55 transition-colors hover:text-white"
         >
           <HelpCircle size={13} aria-hidden />
           {t('scan.tips')}

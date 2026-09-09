@@ -30,7 +30,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="safe-b sticky bottom-0 z-30 shrink-0 border-t border-ink-200 bg-surface/95 shadow-nav backdrop-blur-md"
+      className="safe-b relative z-30 shrink-0 border-t border-ink-200 bg-surface/95 shadow-nav backdrop-blur-md"
     >
       <ul className="flex items-stretch">
         {items.map(({ to, labelKey, icon: Icon }) => {
@@ -56,7 +56,7 @@ export default function BottomNav() {
                   aria-hidden
                 />
                 <span
-                  className={`text-[10.5px] leading-none transition-colors duration-200 ${
+                  className={`text-2xs leading-none transition-colors duration-200 ${
                     active ? 'font-semibold text-brand-700' : 'font-medium text-ink-500'
                   }`}
                 >

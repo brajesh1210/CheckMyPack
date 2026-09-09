@@ -117,7 +117,7 @@ export function SectionHeader({
         <button
           type="button"
           onClick={onAction}
-          className="rounded text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+          className="tap -mr-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700 active:bg-brand-50"
         >
           {action}
         </button>
@@ -144,12 +144,14 @@ export function Stat({
     info: 'text-info-base',
   }
   return (
-    <div className="card px-3.5 py-3">
+    <div className="card px-2.5 py-3">
       {Icon && (
         <Icon size={16} strokeWidth={2} className={`mb-2 ${tones[tone]}`} aria-hidden />
       )}
       <div className={`font-display text-2xl font-semibold tnum ${tones[tone]}`}>{value}</div>
-      <div className="mt-0.5 text-xs leading-tight text-ink-500">{label}</div>
+      {/* Three-up stat rows get very narrow on a 320px phone, so let the
+          label wrap rather than clip. */}
+      <div className="mt-0.5 break-words text-xs leading-tight text-ink-500">{label}</div>
     </div>
   )
 }

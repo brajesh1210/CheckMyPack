@@ -150,7 +150,7 @@ export default function Heatmap() {
                   >
                     <th scope="row" className="px-4 py-2.5 font-medium text-ink-900">
                       {s.city}
-                      <span className="ml-1.5 font-normal text-ink-400">{s.state}</span>
+                      <span className="ml-1.5 font-normal text-ink-500">{s.state}</span>
                     </th>
                     <td className="px-4 py-2.5 text-right font-semibold text-ink-800 tnum">{s.n}</td>
                     <td className="px-4 py-2.5 text-right">

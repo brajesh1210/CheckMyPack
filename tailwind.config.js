@@ -4,7 +4,7 @@ export default {
   theme: {
     // Systematic type scale — 12 / 13 / 14 / 16 / 18 / 20 / 24 / 30 / 38 / 48
     fontSize: {
-      '2xs': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.04em' }],
+      '2xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.03em' }],
       xs: ['0.75rem', { lineHeight: '1.0625rem', letterSpacing: '0.01em' }],
       sm: ['0.8125rem', { lineHeight: '1.1875rem' }],
       base: ['0.9375rem', { lineHeight: '1.5rem' }],
@@ -41,9 +41,12 @@ export default {
           50: '#F7F8F7',
           100: '#EEF0EE',
           200: '#E2E5E2',
+          /* 300 is decorative only (rules, chevrons, toggles) — never text.
+             400 and up are the rungs that may carry text, so each is checked
+             to clear WCAG AA (4.5:1) on canvas, not on pure white. */
           300: '#CBD0CB',
-          400: '#9AA29A',
-          500: '#6F776F',
+          400: '#6C746C',
+          500: '#5E665E',
           600: '#525A52',
           700: '#3D443D',
           800: '#272C27',

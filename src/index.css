@@ -33,12 +33,23 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* The app is a fixed frame: the shell is exactly one screen tall and the
+     content scrolls inside it. Without this the browser scrolls the whole
+     document instead, which pushes the bottom bar and every footer button
+     off-screen and makes the nav overlay list rows while scrolling. */
+  html {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-ink-100 font-sans text-base text-ink-800 antialiased;
     font-feature-settings: 'cv05' 1, 'ss01' 1;
     text-rendering: optimizeLegibility;
     margin: 0;
-    min-height: 100dvh;
+    height: 100%;
+    overflow: hidden;
   }
 
   h1, h2, h3, h4 {
@@ -66,13 +77,39 @@
 @layer components {
   /* ---- App shell: phone-width column, centred on large screens ---- */
   .shell {
-    @apply relative mx-auto flex min-h-[100dvh] w-full flex-col bg-canvas;
+    @apply relative mx-auto flex w-full flex-col bg-canvas;
+    /* Fixed height, not min-height: the shell must never grow past one
+       screen, or the inner scroll area stops being the scroller. */
+    height: 100%;
+    max-height: 100%;
     max-width: var(--shell-max);
+    overflow: hidden;
     box-shadow: 0 0 0 1px rgb(20 24 20 / 0.06), 0 24px 64px -24px rgb(20 24 20 / 0.18);
   }
 
+  /* dvh tracks the collapsing address bar on mobile; 100% covers the
+     WebViews that do not support it yet. */
+  @supports (height: 100dvh) {
+    .shell {
+      height: 100dvh;
+      max-height: 100dvh;
+    }
+  }
+
+  /* Header, bottom bar and footer keep their natural size; only the content
+     area flexes. */
+  .shell > * {
+    flex-shrink: 0;
+  }
+
   .shell-scroll {
-    @apply flex-1 overflow-y-auto overscroll-y-contain;
+    @apply overscroll-y-contain;
+    flex: 1 1 0%;
+    /* The critical line. A flex item defaults to min-height:auto, so it
+       refuses to shrink below its content and never scrolls. */
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
   .shell-scroll::-webkit-scrollbar { display: none; }
@@ -90,8 +127,14 @@
   .btn-secondary { @apply btn border border-ink-200 bg-surface text-ink-800 hover:border-ink-300 hover:bg-ink-50; }
   .btn-ghost { @apply btn text-ink-600 hover:bg-ink-100 hover:text-ink-900; }
   .btn-danger { @apply btn bg-bad-base text-white shadow-sm hover:brightness-110; }
-  .btn-sm { @apply min-h-[40px] rounded-lg px-3.5 text-sm; }
+  .btn-sm { @apply min-h-[44px] rounded-lg px-3.5 text-sm; }
   .btn-block { @apply w-full; }
+
+  /* A small text link still gets a full-size hit area. The negative margin
+     keeps the visual rhythm of the row it sits in. */
+  .tap {
+    @apply -my-2.5 inline-flex min-h-[44px] items-center rounded-lg px-2;
+  }
 
   /* ---- Surfaces ---- */
   .card {

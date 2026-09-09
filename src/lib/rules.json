@@ -11,7 +11,11 @@
     }
   ],
   "engine": {
-    "states": ["PASS", "VIOLATION", "RETAKE"],
+    "states": [
+      "PASS",
+      "VIOLATION",
+      "RETAKE"
+    ],
     "grades": {
       "A": "All mandatory fields present and valid (0 violations, high confidence).",
       "B": "Minor/non-mandatory issues or moderate confidence; no critical violation.",
@@ -19,22 +23,86 @@
     }
   },
   "fieldDefinitions": {
-    "mrp":            { "label": "Maximum Retail Price", "mandatory": true,  "source": "lmppc" },
-    "net_qty":        { "label": "Net Quantity",         "mandatory": true,  "source": "lmppc" },
-    "mfg_month_year": { "label": "Month & Year of Manufacture", "mandatory": true, "source": "lmppc" },
-    "expiry":         { "label": "Expiry / Use-by / Best-before", "mandatory": true, "source": "lmppc_fssai" },
-    "batch":          { "label": "Batch / Lot No.",      "mandatory": false, "source": "lmppc" },
-    "manufacturer":   { "label": "Manufacturer/Packer Name & Address", "mandatory": true, "source": "lmppc" },
-    "country_origin": { "label": "Country of Origin",    "mandatory": false, "source": "lmppc" },
-    "customer_care":  { "label": "Customer Care (phone/email)", "mandatory": true, "source": "lmppc" },
-    "fssai_logo":     { "label": "FSSAI Logo",           "mandatory": true,  "source": "fssai" },
-    "fssai_licence":  { "label": "FSSAI 14-digit Licence No.", "mandatory": true, "source": "fssai" },
-    "veg_symbol":     { "label": "Veg/Non-Veg Symbol",   "mandatory": true,  "source": "fssai" },
-    "ingredients":    { "label": "Ingredients List",     "mandatory": true,  "source": "fssai" },
-    "nutrition":      { "label": "Nutrition Panel",      "mandatory": false, "source": "fssai" },
-    "allergen":       { "label": "Allergen Declaration", "mandatory": false, "source": "fssai" },
-    "generic_name":   { "label": "Generic/Common Product Name", "mandatory": true, "source": "lmppc" },
-    "product_category": { "label": "Product Category (for category-specific rules, e.g. pan masala)", "mandatory": false, "source": "vision" }
+    "mrp": {
+      "label": "Maximum Retail Price",
+      "mandatory": true,
+      "source": "lmppc"
+    },
+    "net_qty": {
+      "label": "Net Quantity",
+      "mandatory": true,
+      "source": "lmppc"
+    },
+    "mfg_month_year": {
+      "label": "Month & Year of Manufacture",
+      "mandatory": true,
+      "source": "lmppc"
+    },
+    "expiry": {
+      "label": "Expiry / Use-by / Best-before",
+      "mandatory": true,
+      "source": "lmppc_fssai"
+    },
+    "batch": {
+      "label": "Batch / Lot No.",
+      "mandatory": false,
+      "source": "lmppc"
+    },
+    "manufacturer": {
+      "label": "Manufacturer/Packer Name & Address",
+      "mandatory": true,
+      "source": "lmppc"
+    },
+    "country_origin": {
+      "label": "Country of Origin",
+      "mandatory": false,
+      "source": "lmppc"
+    },
+    "customer_care": {
+      "label": "Customer Care (phone/email)",
+      "mandatory": true,
+      "source": "lmppc"
+    },
+    "fssai_logo": {
+      "label": "FSSAI Logo",
+      "mandatory": true,
+      "source": "fssai"
+    },
+    "fssai_licence": {
+      "label": "FSSAI 14-digit Licence No.",
+      "mandatory": true,
+      "source": "fssai"
+    },
+    "veg_symbol": {
+      "label": "Veg/Non-Veg Symbol",
+      "mandatory": true,
+      "source": "fssai"
+    },
+    "ingredients": {
+      "label": "Ingredients List",
+      "mandatory": true,
+      "source": "fssai"
+    },
+    "nutrition": {
+      "label": "Nutrition Panel",
+      "mandatory": false,
+      "source": "fssai"
+    },
+    "allergen": {
+      "label": "Allergen Declaration",
+      "mandatory": false,
+      "source": "fssai"
+    },
+    "generic_name": {
+      "label": "Generic/Common Product Name",
+      "mandatory": true,
+      "source": "lmppc"
+    },
+    "product_category": {
+      "label": "Product Category (for category-specific rules, e.g. pan masala)",
+      "mandatory": false,
+      "source": "vision"
+    }
   },
   "rules": [
     {
@@ -42,7 +110,9 @@
       "field": "mrp",
       "severity": "critical",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(g)",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Maximum retail price must be printed on the label.",
       "guidance": "Look for 'MRP ₹' / 'Rs.' inclusive of all taxes."
     },
@@ -51,7 +121,10 @@
       "field": "mrp",
       "severity": "critical",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(g)",
-      "test": { "op": "regex", "pattern": "(?i)(inclusive\\s+of\\s+all\\s+taxes|incl\\.?\\s+of\\s+all\\s+tax|\\btaxes\\b)" },
+      "test": {
+        "op": "regex",
+        "pattern": "(?i)(inclusive\\s+of\\s+all\\s+taxes|incl\\.?\\s+of\\s+all\\s+tax|\\btaxes\\b)"
+      },
       "message": "MRP must be declared as inclusive of all taxes.",
       "guidance": "The label should state MRP is 'inclusive of all taxes'."
     },
@@ -60,7 +133,9 @@
       "field": "mrp",
       "severity": "major",
       "statute": "LMPC Rules, 2011 — Rule 6 (declarations must be printed; sticker MRP is restricted)",
-      "test": { "op": "mrp_sticker_check" },
+      "test": {
+        "op": "mrp_sticker_check"
+      },
       "message": "MRP appears to be affixed as a separate sticker rather than printed.",
       "guidance": "Separate MRP stickers are not permitted except in allowed cases; verify print vs sticker."
     },
@@ -69,7 +144,9 @@
       "field": "net_qty",
       "severity": "critical",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(d)",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Net quantity (with correct unit) must be declared.",
       "guidance": "e.g. 'Net Weight: 500 g', 'Net Qty: 1 L', '20 x 50 g'."
     },
@@ -78,7 +155,10 @@
       "field": "net_qty",
       "severity": "major",
       "statute": "LMPC Rules, 2011 — Rule 6 & Seventh Schedule (standard units)",
-      "test": { "op": "regex", "pattern": "(?i)\\b(kg|g|mg|l|ml|litre|liter|metre|m|cm|piece|pcs|n|no)\\b" },
+      "test": {
+        "op": "regex",
+        "pattern": "(?i)\\b(kg|g|mg|l|ml|litre|liter|metre|m|cm|piece|pcs|n|no)\\b"
+      },
       "message": "Net quantity must use a standard prescribed unit.",
       "guidance": "Weight in g/kg, volume in ml/L, length in m/cm, or count (N/pcs)."
     },
@@ -87,7 +167,9 @@
       "field": "mfg_month_year",
       "severity": "critical",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(e)",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Month and year of manufacture/packing must be declared.",
       "guidance": "e.g. 'Mfg: 03/2026' or 'Manufactured: Mar 2026'."
     },
@@ -96,7 +178,10 @@
       "field": "expiry",
       "severity": "critical",
       "statute": "FSSAI Labelling & Display Regulations / LMPC Rule 6",
-      "test": { "op": "date_not_past", "ref": "today" },
+      "test": {
+        "op": "date_not_past",
+        "ref": "today"
+      },
       "message": "Product is past its expiry / best-before / use-by date.",
       "guidance": "Check date formatting (MM/YYYY or DD/MM/YYYY); expired goods are unsafe."
     },
@@ -105,7 +190,9 @@
       "field": "expiry",
       "severity": "major",
       "statute": "FSSAI Labelling & Display Regulations",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Expiry / use-by / best-before date must be declared.",
       "guidance": "Look for 'Use before', 'Best before', 'EXP'."
     },
@@ -114,7 +201,9 @@
       "field": "manufacturer",
       "severity": "critical",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(a) & Rule 10",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Name and address of manufacturer/packer/importer must be declared.",
       "guidance": "Manufacturer/packer/brand owner with full address (Rule 10)."
     },
@@ -123,7 +212,13 @@
       "field": "customer_care",
       "severity": "major",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(j)",
-      "test": { "op": "any_of", "fields": ["phone", "email"] },
+      "test": {
+        "op": "any_of",
+        "fields": [
+          "phone",
+          "email"
+        ]
+      },
       "message": "Customer-care number or email must be printed.",
       "guidance": "Toll-free/phone or email for consumer grievances."
     },
@@ -132,7 +227,10 @@
       "field": "phone",
       "severity": "minor",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(j)",
-      "test": { "op": "regex_if_present", "pattern": "(\\+91[\\-\\s]?)?[6-9]\\d{9}|1[0-9]{2,3}" },
+      "test": {
+        "op": "regex_if_present",
+        "pattern": "(\\+91[\\-\\s]?)?[6-9]\\d{9}|1[0-9]{2,3}"
+      },
       "message": "Customer-care phone number looks invalid.",
       "guidance": "Indian mobile (10-digit starting 6-9) or a helpline like 14404."
     },
@@ -141,7 +239,10 @@
       "field": "email",
       "severity": "minor",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(j)",
-      "test": { "op": "regex_if_present", "pattern": "(?i)[a-z0-9._%+\\-]+@[a-z0-9.\\-]+\\.[a-z]{2,}" },
+      "test": {
+        "op": "regex_if_present",
+        "pattern": "(?i)[a-z0-9._%+\\-]+@[a-z0-9.\\-]+\\.[a-z]{2,}"
+      },
       "message": "Customer-care email looks invalid.",
       "guidance": "Should be a valid email address."
     },
@@ -150,7 +251,9 @@
       "field": "fssai_logo",
       "severity": "critical",
       "statute": "FSSAI Labelling & Display Regulations, 2020",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "FSSAI logo is missing on the food label.",
       "guidance": "Look for the FSSAI mark with the licence number."
     },
@@ -159,7 +262,9 @@
       "field": "fssai_licence",
       "severity": "critical",
       "statute": "FSSAI Labelling & Display Regulations, 2020",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "FSSAI licence number is missing.",
       "guidance": "Usually printed near the FSSAI logo."
     },
@@ -168,7 +273,10 @@
       "field": "fssai_licence",
       "severity": "critical",
       "statute": "FSSAI — 14-digit licence number format",
-      "test": { "op": "regex", "pattern": "(?i)(?:licen[cs]e|fssai)?\\s*(?:no\\.?\\s*[:#-]?)?\\s*(\\d{14})\\b" },
+      "test": {
+        "op": "regex",
+        "pattern": "(?i)(?:licen[cs]e|fssai)?\\s*(?:no\\.?\\s*[:#-]?)?\\s*(\\d{14})\\b"
+      },
       "extract": "digits14",
       "message": "FSSAI licence number must be exactly 14 digits.",
       "guidance": "Format is 14 digits (often shown as 1XXXXXXXXXXXXX). A malformed/short number is non-compliant."
@@ -178,7 +286,9 @@
       "field": "veg_symbol",
       "severity": "major",
       "statute": "FSSAI Labelling & Display Regulations (veg/non-veg symbol)",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Vegetarian/non-vegetarian symbol (green/brown mark in square) is missing.",
       "guidance": "Green triangle-in-square = veg; brown = non-veg."
     },
@@ -187,25 +297,31 @@
       "field": "ingredients",
       "severity": "major",
       "statute": "FSSAI Labelling & Display Regulations",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Ingredients list is missing.",
       "guidance": "Must list ingredients (often 'Ingredients: ...')."
     },
     {
       "id": "GENERIC_NAME_PRESENT",
       "field": "generic_name",
-      "severity": "critical",
+      "severity": "major",
       "statute": "LMPC Rules, 2011 — Rule 6(1)(b)",
-      "test": { "op": "required" },
+      "test": {
+        "op": "required"
+      },
       "message": "Common/generic name of the commodity is missing.",
-      "guidance": "The product must not show only a brand name; the generic name is required."
+      "guidance": "The common or generic name is usually printed in the brand band, in stylised or reversed type the reader often cannot resolve. It is reported at the proportionate severity rather than as the most serious finding, so a pack is not condemned for a line the camera simply could not make out. Ask the retailer to point it out and verify by eye before acting on this."
     },
     {
       "id": "NUMERAL_HEIGHT_SCH4",
       "field": "net_qty",
       "severity": "major",
       "statute": "LMPC Rules, 2011 — Fourth Schedule (minimum numeral height)",
-      "test": { "op": "numeral_height" },
+      "test": {
+        "op": "numeral_height"
+      },
       "message": "MRP/net-quantity numerals may be smaller than the Fourth Schedule minimum.",
       "guidance": "Minimum numeral height depends on packet size (e.g. larger packs require taller figures)."
     },
@@ -214,7 +330,10 @@
       "field": "mrp",
       "severity": "critical",
       "statute": "LMPC Second (Amendment) Rules, 2025 — GSR 881(E), effective 01-Feb-2026 (pan masala)",
-      "test": { "op": "required_if_category", "category": "pan_masala" },
+      "test": {
+        "op": "required_if_category",
+        "category": "pan_masala"
+      },
       "message": "All pan masala packs (every size, incl. <=10g) must print the Retail Sale Price (RSP) from 1 Feb 2026.",
       "guidance": "The small-pack (<=10g) declaration exemption was withdrawn for pan masala; RSP must be printed, even on tiny pouches."
     },
@@ -223,7 +342,10 @@
       "field": "net_qty",
       "severity": "critical",
       "statute": "LMPC Second (Amendment) Rules, 2025 — GSR 881(E), effective 01-Feb-2026 (pan masala)",
-      "test": { "op": "required_if_category", "category": "pan_masala" },
+      "test": {
+        "op": "required_if_category",
+        "category": "pan_masala"
+      },
       "message": "Pan masala packs must display ALL mandatory declarations (net quantity etc.), regardless of size.",
       "guidance": "Under the 2025 amendment pan masala is no longer exempt from the full declaration set even for small packs."
     }

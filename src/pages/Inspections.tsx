@@ -120,7 +120,7 @@ export default function Inspections() {
                       <span className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-500">
                         <MapPin size={12} strokeWidth={2} className="shrink-0 text-ink-400" aria-hidden />
                         <span className="truncate">{c.place}</span>
-                        <span className="text-ink-300">·</span>
+                        <span className="text-ink-400">·</span>
                         <span className="shrink-0 tnum">{c.date}</span>
                       </span>
                     </span>

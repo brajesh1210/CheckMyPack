@@ -85,7 +85,7 @@ export default function History() {
               <EmptyState
                 icon={ScanLine}
                 title={t('home.noScans')}
-                body="Every pack you scan is saved here, including offline ones."
+                body={t('history.noScansBody')}
                 action={
                   <button type="button" onClick={() => nav('/app/scan')} className="btn-primary btn-sm">
                     {t('result.scanAPack')}
@@ -98,7 +98,7 @@ export default function History() {
               <EmptyState
                 icon={Search}
                 title={t('history.nothingMatches')}
-                body="Try a different search term or clear the filter."
+                body={t('history.nothingMatchesBody')}
                 action={
                   <button type="button" onClick={() => { setQ(''); setFilter('all') }} className="btn-secondary btn-sm">
                     {t('history.clearFilters')}
@@ -146,7 +146,7 @@ export default function History() {
                       type="button"
                       onClick={() => removeScan(s.id)}
                       aria-label={`Delete scan of ${s.productName}`}
-                      className="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-ink-300 transition-colors hover:bg-bad-soft hover:text-bad-base"
+                      className="absolute right-0.5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-ink-300 transition-colors hover:bg-bad-soft hover:text-bad-base"
                     >
                       <Trash2 size={15} strokeWidth={1.9} aria-hidden />
                     </button>

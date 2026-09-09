@@ -98,11 +98,11 @@ export default function Profile() {
             <ListRow
               icon={Volume2}
               title={t('profile.voice')}
-              meta="Speak the verdict aloud after each scan"
+              meta={t('profile.voiceMeta')}
               onClick={() => setVoice(!voice)}
               right={<Toggle on={voice} />}
             />
-            <ListRow icon={WifiOff} title={t('profile.onDevice')} meta="Labels are always read locally; nothing is uploaded" right={<Toggle on />} />
+            <ListRow icon={WifiOff} title={t('profile.onDevice')} meta={t('profile.onDeviceMeta')} right={<Toggle on />} />
           </div>
         </section>
 

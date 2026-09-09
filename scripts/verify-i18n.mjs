@@ -107,35 +107,40 @@ console.log('Translations\n')
   console.log()
 }
 
-/* ─────────────────────────── no user-visible English left in pages */
+/* ──────────────────── no user-visible English left anywhere in pages */
 {
+  // Attribute values that carry no prose.
+  const NON_PROSE = new Set([
+    'class', 'className', 'id', 'type', 'to', 'href', 'src', 'viewBox', 'd',
+    'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin', 'name',
+    'role', 'rel', 'target', 'inputMode', 'autoComplete', 'method', 'scope',
+    'sizes', 'width', 'height', 'xmlns', 'version', 'encoding', 'key', 'as',
+    'accept', 'capture', 'rows', 'min', 'max', 'step', 'colSpan',
+    'preserveAspectRatio', 'alt',
+  ])
+  // Two or more real words means prose, not a token.
+  const PROSE = /[A-Za-z]{3,}[\s'\u2019][A-Za-z]{3,}/
+
   const leftovers = []
   for (const f of readdirSync('src/pages').filter((x) => x.endsWith('.tsx'))) {
     const src = readFileSync(`src/pages/${f}`, 'utf8')
-    // JSX text nodes containing real words rather than expressions.
+
+    // JSX text nodes: > Some words here <
     for (const m of src.matchAll(/>\s*([A-Za-z][A-Za-z ,'?!.&-]{6,})\s*</g)) {
       const text = m[1].trim()
-      // Class names and single technical tokens are not user prose.
-      if (/^[a-z-]+$/.test(text)) continue
-      leftovers.push(`${f}: ${text}`)
+      if (/^[a-z-]+$/.test(text)) continue // a lone utility/class token
+      leftovers.push(`${f}: text "${text}"`)
     }
-    for (const m of src.matchAll(/\b(title|subtitle|placeholder|aria-label)="([^"]{6,})"/g)) {
-      // "Primary" on the nav landmark is a stable ARIA role name.
-      if (m[2] === 'Primary') continue
-      leftovers.push(`${f}: [${m[1]}] ${m[2]}`)
-    }
-    // Quoted English prose inside expressions, e.g. a ternary picking between
-    // two sentences. This is how the first pass missed several strings.
-    for (const m of src.matchAll(/'([A-Z][A-Za-z][A-Za-z ,'?!.&:—-]{14,})'/g)) {
-      const text = m[1]
-      // Tailwind class lists are not prose: they are lowercase, hyphenated and
-      // full of utility prefixes.
-      if (/\b(bg|text|border|ring|hover|grid|flex|rounded)-/.test(text)) continue
-      leftovers.push(`${f}: (expression) ${text}`)
+
+    // string-literal attributes, e.g. action="All cases"
+    for (const m of src.matchAll(/\b([a-zA-Z][a-zA-Z-]*)="([^"]{3,})"/g)) {
+      const attr = m[1]
+      const value = m[2]
+      if (NON_PROSE.has(attr)) continue
+      if (PROSE.test(value)) leftovers.push(`${f}: ${attr}="${value}"`)
     }
   }
   check('no hardcoded English prose remains in pages', leftovers, [])
-  console.log()
 }
 
 /* ────────────────────────────────────────── Devanagari sanity check */
