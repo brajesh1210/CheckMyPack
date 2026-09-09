@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { X, Zap, ZapOff, Images, HelpCircle, Sparkles, CameraOff, Upload } from 'lucide-react'
 import { Screen, AppBar, IconButton } from '../components/UI'
@@ -8,12 +9,13 @@ import { useScanRun } from '../scan/ScanRunner'
 import { isNative, nativePhoto, ensureCameraPermission } from '../lib/native'
 
 const samples = [
-  { id: 'compliant', label: 'Compliant pack', hint: 'All mandatory declarations present' },
-  { id: 'violation', label: 'Missing MRP & care details', hint: 'Two critical violations' },
-  { id: 'blurry', label: 'Blurred photo', hint: 'Fails the quality gate' },
+  { id: 'compliant', labelKey: 'scan.sampleCompliant', hintKey: 'scan.sampleCompliantHint' },
+  { id: 'violation', labelKey: 'scan.sampleViolation', hintKey: 'scan.sampleViolationHint' },
+  { id: 'blurry', labelKey: 'scan.sampleBlurry', hintKey: 'scan.sampleBlurryHint' },
 ]
 
 export default function Scan() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -25,7 +27,7 @@ export default function Scan() {
   const [torch, setTorch] = useState(false)
   const [hasTorch, setHasTorch] = useState(false)
   const [sheet, setSheet] = useState(false)
-  const [hint, setHint] = useState('Fill the frame with the label')
+  const [hint, setHint] = useState('scan.hintFrame')
   const [live, setLive] = useState<'good' | 'warn'>('warn')
 
   // On Android the OS camera app handles capture, so no web preview is needed.
@@ -54,8 +56,8 @@ export default function Scan() {
       .catch((e: DOMException) => {
         setCamError(
           e.name === 'NotAllowedError'
-            ? 'Camera permission was denied. You can still upload a photo or run a sample.'
-            : 'No camera is available on this device. Upload a photo instead.',
+            ? t('scan.permDeniedSample')
+            : t('scan.noCamera'),
         )
       })
     return () => {
@@ -73,16 +75,16 @@ export default function Scan() {
       const q = assessVideoFrame(v)
       if (!q) return
       if (q.luma < THRESHOLDS.lumaMin) {
-        setHint('Too dark — find more light')
+        setHint('scan.hintDark')
         setLive('warn')
       } else if (q.glare > THRESHOLDS.glareMax) {
-        setHint('Glare detected — tilt the pack away from the light')
+        setHint('scan.hintGlare')
         setLive('warn')
       } else if (q.sharpness < THRESHOLDS.sharpnessMin * 0.6) {
-        setHint('Hold steady — the image is blurred')
+        setHint('scan.hintBlur')
         setLive('warn')
       } else {
-        setHint('Looks good — tap to capture')
+        setHint('scan.hintGood')
         setLive('good')
       }
     }, 700)
@@ -104,7 +106,7 @@ export default function Scan() {
     if (isNative()) {
       const granted = await ensureCameraPermission()
       if (!granted) {
-        setCamError('Camera permission was denied. Enable it in Settings, or pick a photo from your gallery.')
+        setCamError(t('scan.permDeniedSettings'))
         return
       }
       const blob = await nativePhoto('camera')
@@ -149,13 +151,13 @@ export default function Scan() {
     <Screen className="bg-ink-900">
       <AppBar
         tone="dark"
-        title="Scan label"
+        title={t('scan.title')}
         right={
           <>
             {hasTorch && !isNative() && (
-              <IconButton tone="dark" icon={torch ? Zap : ZapOff} label={torch ? 'Turn flash off' : 'Turn flash on'} onClick={toggleTorch} />
+              <IconButton tone="dark" icon={torch ? Zap : ZapOff} label={t(torch ? 'scan.flashOff' : 'scan.flashOn')} onClick={toggleTorch} />
             )}
-            <IconButton tone="dark" icon={X} label="Close scanner" onClick={() => nav('/app/home')} />
+            <IconButton tone="dark" icon={X} label={t('scan.close')} onClick={() => nav('/app/home')} />
           </>
         }
       />
@@ -207,7 +209,7 @@ export default function Scan() {
           }`}
         >
           {isNative()
-            ? 'Tap the shutter to open the camera'
+            ? t('scan.tapShutter')
             : ready
               ? hint
               : camError
@@ -223,7 +225,7 @@ export default function Scan() {
             type="button"
             onClick={pickFromGallery}
             className="grid h-12 w-12 place-items-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Upload a photo instead"
+            aria-label={t('scan.upload')}
           >
             <Upload size={21} strokeWidth={1.8} aria-hidden />
           </button>
@@ -233,7 +235,7 @@ export default function Scan() {
             type="button"
             onClick={capture}
             disabled={!ready}
-            aria-label="Capture photo"
+            aria-label={t('scan.capture')}
             className="grid h-[74px] w-[74px] place-items-center rounded-full ring-[3px] ring-white/85 transition-transform duration-150 ease-spring active:scale-90 disabled:opacity-35"
           >
             <span className="h-[58px] w-[58px] rounded-full bg-white" />
@@ -243,7 +245,7 @@ export default function Scan() {
             type="button"
             onClick={() => setSheet(true)}
             className="grid h-12 w-12 place-items-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Use a sample pack"
+            aria-label={t('scan.useSample')}
           >
             <Images size={21} strokeWidth={1.8} aria-hidden />
           </button>
@@ -255,7 +257,7 @@ export default function Scan() {
           className="mx-auto mt-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-white/55 transition-colors hover:text-white"
         >
           <HelpCircle size={13} aria-hidden />
-          Scanning tips
+          {t('scan.tips')}
         </button>
       </div>
 
@@ -263,23 +265,23 @@ export default function Scan() {
         <>
           <button
             type="button"
-            aria-label="Close sample picker"
+            aria-label={t('scan.closeSamples')}
             onClick={() => setSheet(false)}
             className="absolute inset-0 z-40 animate-fade-in bg-ink-900/60 backdrop-blur-sm"
           />
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Sample packs"
+            aria-label={t('scan.samplePacks')}
             className="safe-b absolute inset-x-0 bottom-0 z-50 animate-fade-up rounded-t-2xl bg-surface px-5 pb-5 pt-3"
           >
             <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-ink-300" aria-hidden />
             <div className="mb-1 flex items-center gap-2">
               <Sparkles size={16} className="text-brand-600" aria-hidden />
-              <h2 className="font-display text-md font-semibold">Sample packs</h2>
+              <h2 className="font-display text-md font-semibold">{t('scan.samplePacks')}</h2>
             </div>
             <p className="mb-4 text-sm text-ink-500">
-              Runs the real pipeline — quality gate, OCR and rule engine — on a bundled image.
+              {t('scan.sampleNote')}
             </p>
             <ul className="space-y-2">
               {samples.map((s) => (
@@ -290,15 +292,15 @@ export default function Scan() {
                     className="card-interactive flex w-full items-center gap-3 p-3.5 text-left"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block text-md font-medium text-ink-900">{s.label}</span>
-                      <span className="mt-0.5 block text-xs text-ink-500">{s.hint}</span>
+                      <span className="block text-md font-medium text-ink-900">{t(s.labelKey)}</span>
+                      <span className="mt-0.5 block text-xs text-ink-500">{t(s.hintKey)}</span>
                     </span>
                   </button>
                 </li>
               ))}
             </ul>
             <button type="button" onClick={() => setSheet(false)} className="btn-ghost btn-block mt-3">
-              Cancel
+              {t('scan.cancel')}
             </button>
           </div>
         </>

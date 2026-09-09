@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, Divider } from '../components/UI'
@@ -17,6 +18,7 @@ function GoogleGlyph() {
 }
 
 export default function Login() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const setUser = useApp((s) => s.setUser)
   const [email, setEmail] = useState('')
@@ -52,15 +54,15 @@ export default function Login() {
       <AppBar back onBack={() => nav('/')} border={false} />
       <ScrollArea className="gutter pb-10">
         <Mark size={44} className="text-brand-500" />
-        <h1 className="mt-5 font-display text-3xl tracking-[-0.025em]">Sign in</h1>
+        <h1 className="mt-5 font-display text-3xl tracking-[-0.025em]">{t('auth.signIn')}</h1>
         <p className="mt-2 text-md leading-relaxed text-ink-500">
-          Your scan history and complaints stay tied to this account.
+          {t('auth.signInSub')}
         </p>
 
         <form onSubmit={submit} className="mt-7 space-y-4" noValidate>
           <div>
             <label htmlFor="email" className="field-label">
-              Email address
+              {t('auth.email')}
             </label>
             <input
               id="email"
@@ -68,7 +70,7 @@ export default function Login() {
               inputMode="email"
               autoComplete="email"
               className="field"
-              placeholder="name@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               aria-invalid={!!error && !email.includes('@')}
@@ -77,7 +79,7 @@ export default function Login() {
 
           <div>
             <label htmlFor="pw" className="field-label">
-              Password
+              {t('auth.password')}
             </label>
             <div className="relative">
               <input
@@ -85,20 +87,20 @@ export default function Login() {
                 type={show ? 'text' : 'password'}
                 autoComplete="current-password"
                 className="field pr-12"
-                placeholder="At least 6 characters"
+                placeholder={t('auth.passwordPlaceholder')}
                 value={pw}
                 onChange={(e) => setPw(e.target.value)}
               />
               <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
-                aria-label={show ? 'Hide password' : 'Show password'}
+                aria-label={show ? t('auth.hidePassword') : t('auth.showPassword')}
                 className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-ink-400 transition-colors hover:text-ink-700"
               >
                 {show ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
               </button>
             </div>
-            <p className="field-hint">Use six characters or more.</p>
+            <p className="field-hint">{t('auth.passwordHint')}</p>
           </div>
 
           {error && (
@@ -114,20 +116,20 @@ export default function Login() {
         </form>
 
         <div className="my-6">
-          <Divider label="or" />
+          <Divider label={t('auth.or')} />
         </div>
 
         <div className="space-y-2.5">
           <button type="button" onClick={() => go('google', 'Aarav Sharma')} className="btn-secondary btn-block" disabled={!!busy}>
             <GoogleGlyph />
-            Continue with Google
+            {t('auth.google')}
           </button>
           <button type="button" onClick={() => go('gov', 'Insp. R. Verma')} className="btn-secondary btn-block" disabled={!!busy}>
             <ShieldCheck size={18} strokeWidth={1.9} className="text-info-base" aria-hidden />
-            Government ID (officers)
+            {t('auth.govId')}
           </button>
           <button type="button" onClick={() => go('guest', 'Guest')} className="btn-ghost btn-block" disabled={!!busy}>
-            Explore as guest
+            {t('auth.guest')}
           </button>
         </div>
 

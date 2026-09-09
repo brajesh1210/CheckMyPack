@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Bell, ScanLine, ChevronRight, ShieldCheck, TriangleAlert, Layers, WifiOff, BookOpen, PhoneCall } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, IconButton, SectionHeader, Stat, StatusPill, EmptyState } from '../components/UI'
@@ -5,6 +6,7 @@ import BottomNav from '../components/BottomNav'
 import { useApp } from '../store/app'
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const { user, scans, online } = useApp()
   const total = scans.length
@@ -13,14 +15,14 @@ export default function Dashboard() {
   const firstName = (user?.name || 'there').split(' ')[0]
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const greeting = t(hour < 12 ? 'home.morning' : hour < 17 ? 'home.afternoon' : 'home.evening')
 
   return (
     <Screen>
       <AppBar
         title={<span className="text-md font-semibold">{greeting}, {firstName}</span>}
-        subtitle="Delhi, India"
-        right={<IconButton icon={Bell} label="Notifications" badge={2} />}
+        subtitle={t('home.place')}
+        right={<IconButton icon={Bell} label={t('home.notifications')} badge={2} />}
       />
 
       <ScrollArea className="pb-6">
@@ -28,7 +30,7 @@ export default function Dashboard() {
           <div className="gutter pt-3">
             <div className="flex items-center gap-2.5 rounded-lg bg-warn-soft px-3 py-2.5" role="status">
               <WifiOff size={16} className="shrink-0 text-warn-base" aria-hidden />
-              <p className="text-sm text-warn-text">Offline — scans use on-device reading and sync later.</p>
+              <p className="text-sm text-warn-text">{t('home.offline')}</p>
             </div>
           </div>
         )}
@@ -47,8 +49,8 @@ export default function Dashboard() {
                 <ScanLine size={26} strokeWidth={1.9} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-display text-xl font-semibold tracking-[-0.02em]">Scan a packet</span>
-                <span className="mt-1 block text-sm text-white/65">Check the label against LMPC &amp; FSSAI rules</span>
+                <span className="block font-display text-xl font-semibold tracking-[-0.02em]">{t('home.scanTitle')}</span>
+                <span className="mt-1 block text-sm text-white/65">{t('home.scanSubAmp')}</span>
               </span>
               <ChevronRight size={20} className="shrink-0 text-white/50 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
             </span>
@@ -58,24 +60,24 @@ export default function Dashboard() {
         {/* --------------------------------------------------------- stats */}
         <section className="gutter pt-5">
           <div className="grid grid-cols-3 gap-2.5">
-            <Stat value={total} label="Total scans" icon={Layers} />
-            <Stat value={compliant} label="Compliant" tone="ok" icon={ShieldCheck} />
-            <Stat value={violations} label="Violations" tone="bad" icon={TriangleAlert} />
+            <Stat value={total} label={t('home.totalScans')} icon={Layers} />
+            <Stat value={compliant} label={t('home.compliant')} tone="ok" icon={ShieldCheck} />
+            <Stat value={violations} label={t('home.violations')} tone="bad" icon={TriangleAlert} />
           </div>
         </section>
 
         {/* ------------------------------------------------- recent scans */}
         <section className="gutter pt-7">
-          <SectionHeader title="Recent scans" action="View all" onAction={() => nav('/app/history')} />
+          <SectionHeader title={t('home.recent')} action="View all" onAction={() => nav('/app/history')} />
           {scans.length === 0 ? (
             <div className="card">
               <EmptyState
                 icon={ScanLine}
-                title="No scans yet"
+                title={t('home.noScans')}
                 body="Scan your first packet to see its compliance verdict here."
                 action={
                   <button type="button" onClick={() => nav('/app/scan')} className="btn-primary btn-sm">
-                    Scan now
+                    {t('home.scanNow')}
                   </button>
                 }
               />
@@ -114,17 +116,17 @@ export default function Dashboard() {
 
         {/* ------------------------------------------------------ shortcuts */}
         <section className="gutter pt-7">
-          <SectionHeader title="Quick actions" />
+          <SectionHeader title={t('home.quickActions')} />
           <div className="grid grid-cols-2 gap-2.5">
             <button type="button" onClick={() => nav('/app/guidelines')} className="card-interactive p-4 text-left">
               <BookOpen size={19} strokeWidth={1.9} className="mb-2.5 text-brand-600" aria-hidden />
-              <span className="block text-sm font-semibold text-ink-900">Scanning guide</span>
-              <span className="mt-1 block text-xs leading-snug text-ink-500">Get a readable photo first time</span>
+              <span className="block text-sm font-semibold text-ink-900">{t('home.guideTitle')}</span>
+              <span className="mt-1 block text-xs leading-snug text-ink-500">{t('home.guideSub')}</span>
             </button>
             <button type="button" onClick={() => nav('/app/complaint')} className="card-interactive p-4 text-left">
               <PhoneCall size={19} strokeWidth={1.9} className="mb-2.5 text-bad-base" aria-hidden />
-              <span className="block text-sm font-semibold text-ink-900">File a complaint</span>
-              <span className="mt-1 block text-xs leading-snug text-ink-500">National helpline 14404</span>
+              <span className="block text-sm font-semibold text-ink-900">{t('home.complaintTitle')}</span>
+              <span className="mt-1 block text-xs leading-snug text-ink-500">{t('home.complaintSub')}</span>
             </button>
           </div>
         </section>

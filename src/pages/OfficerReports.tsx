@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Repeat, MapPinned, Download, AlertCircle } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, SectionHeader } from '../components/UI'
 import BottomNav from '../components/BottomNav'
@@ -14,6 +15,7 @@ import {
 } from '../lib/officer'
 
 export default function OfficerReports() {
+  const { t } = useTranslation()
   const [hotspots, setHotspots] = useState<Hotspot[]>([])
   const [offenders, setOffenders] = useState<Offender[]>([])
   const [live, setLive] = useState(false)
@@ -39,13 +41,13 @@ export default function OfficerReports() {
   return (
     <Screen>
       <AppBar
-        title="Reports"
+        title={t('nav.reports')}
         subtitle={
           loading
-            ? 'Loading enforcement data'
+            ? t('officer.reportsLoading')
             : live
-              ? 'Across all reporting users'
-              : 'From scans on this device'
+              ? t('officer.reportsLive')
+              : t('officer.reportsLocal')
         }
       />
 
@@ -69,21 +71,20 @@ export default function OfficerReports() {
         {/* --------------------------------------------- repeat offenders */}
         <div className="pt-7">
           <SectionHeader
-            title="Repeat-offender registry"
+            title={t('officer.registry')}
             action={offenders.length > 0 ? 'Export CSV' : undefined}
             onAction={() => void downloadCsv(`repeat-offenders-${stamp}.csv`, offendersCsv(offenders))}
           />
 
           {loading ? (
             <div className="card p-4">
-              <p className="text-sm text-ink-500">Loading…</p>
+              <p className="text-sm text-ink-500">{t('officer.loading')}</p>
             </div>
           ) : offenders.length === 0 ? (
             <div className="card flex items-start gap-3 p-4">
               <AlertCircle size={17} className="mt-0.5 shrink-0 text-ink-400" aria-hidden />
               <p className="text-sm leading-relaxed text-ink-600">
-                No brand has been reported twice yet. A brand is listed here once
-                two or more independent violations have been filed against it.
+                {t('officer.registryEmpty')}
               </p>
             </div>
           ) : (
@@ -118,7 +119,7 @@ export default function OfficerReports() {
         {/* ------------------------------------------------- district table */}
         <div className="pt-7">
           <SectionHeader
-            title="District-wise violations"
+            title={t('officer.districtViolations')}
             action={hotspots.length > 0 ? 'Export CSV' : undefined}
             onAction={() => void downloadCsv(`district-violations-${stamp}.csv`, hotspotsCsv(hotspots))}
           />
@@ -127,7 +128,7 @@ export default function OfficerReports() {
             <div className="card flex items-start gap-3 p-4">
               <MapPinned size={17} className="mt-0.5 shrink-0 text-ink-400" aria-hidden />
               <p className="text-sm leading-relaxed text-ink-600">
-                No inspections recorded yet.
+                {t('officer.noInspections')}
               </p>
             </div>
           ) : (
@@ -135,10 +136,10 @@ export default function OfficerReports() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-ink-50 text-2xs uppercase tracking-[0.06em] text-ink-500">
-                    <th scope="col" className="px-4 py-2.5 font-semibold">District</th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-semibold">Scans</th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-semibold">Violations</th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-semibold">Rate</th>
+                    <th scope="col" className="px-4 py-2.5 font-semibold">{t('officer.district')}</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-semibold">{t('officer.scans')}</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-semibold">{t('home.violations')}</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-semibold">{t('officer.rate')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-200">
@@ -161,16 +162,14 @@ export default function OfficerReports() {
 
         {/* ------------------------------------------------------- full export */}
         <div className="pt-7">
-          <SectionHeader title="Export" />
+          <SectionHeader title={t('officer.export')} />
           <div className="card p-4">
             <p className="text-sm leading-relaxed text-ink-600">
-              Download the case register as a spreadsheet for filing with the
-              state Legal Metrology office.
+              {t('officer.exportNote')}
             </p>
             {!live && !loading && (
               <p className="mt-2 text-xs leading-relaxed text-ink-500">
-                This export covers scans stored on this device only. Sign in and
-                connect to include reports from all users.
+                {t('officer.exportLocalNote')}
               </p>
             )}
             <button
@@ -180,7 +179,7 @@ export default function OfficerReports() {
               className="btn-secondary btn-block mt-4 disabled:opacity-50"
             >
               <Download size={17} strokeWidth={2} aria-hidden />
-              Export CSV
+              {t('officer.exportCsv')}
             </button>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ScanOutcome } from '../lib/pipeline'
 import { queueScan } from '../lib/sync'
 import { rulesMeta } from '../lib/engine'
+import { setLanguage } from '../i18n'
 
 export type Role = 'consumer' | 'officer' | 'manufacturer' | null
 export type User = { name: string; email: string; provider: 'google' | 'gov' | 'guest' } | null
@@ -102,7 +103,11 @@ export const useApp = create<AppState>()(
       lastScanId: null,
       setRole: (role) => set({ role }),
       setUser: (user) => set({ user }),
-      setLang: (lang) => set({ lang }),
+      setLang: (lang) => {
+        set({ lang })
+        // The store holds the preference; i18next does the actual switching.
+        setLanguage(lang)
+      },
       setVoice: (voice) => set({ voice }),
       addScan: (s) => {
         // Local first: the user sees the result immediately whatever the

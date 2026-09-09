@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingBag, ShieldCheck, Factory, ArrowRight, Check } from 'lucide-react'
 import { Screen, ScrollArea, AppBar } from '../components/UI'
@@ -8,27 +9,28 @@ const roles = [
   {
     id: 'consumer' as const,
     icon: ShoppingBag,
-    title: 'Consumer',
-    body: 'Scan what you buy, learn your rights, and file a complaint when a pack is non-compliant.',
+    titleKey: 'role.consumerTitle',
+    bodyKey: 'role.consumerBody',
     accent: 'text-brand-600 bg-brand-50 ring-brand-500',
   },
   {
     id: 'officer' as const,
     icon: ShieldCheck,
-    title: 'Enforcement officer',
-    body: 'Record field inspections, build cited case files, and track violation hotspots on a map.',
+    titleKey: 'role.officerTitle',
+    bodyKey: 'role.officerBody',
     accent: 'text-info-base bg-info-soft ring-info-base',
   },
   {
     id: 'manufacturer' as const,
     icon: Factory,
-    title: 'Manufacturer',
-    body: 'Pre-check artwork before a print run and catch missing declarations early.',
+    titleKey: 'role.makerTitle',
+    bodyKey: 'role.makerBody',
     accent: 'text-ink-700 bg-ink-100 ring-ink-700',
   },
 ]
 
 export default function RoleSelect() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const setRole = useApp((s) => s.setRole)
   const [picked, setPicked] = useState<Role>('consumer')
@@ -42,13 +44,13 @@ export default function RoleSelect() {
     <Screen>
       <AppBar back onBack={() => nav('/login')} border={false} />
       <ScrollArea className="gutter pb-6">
-        <h1 className="font-display text-3xl tracking-[-0.025em]">How will you use it?</h1>
+        <h1 className="font-display text-3xl tracking-[-0.025em]">{t('role.title')}</h1>
         <p className="mt-2 text-md leading-relaxed text-ink-500">
-          This tailors your home screen and available tools. You can change it later in Profile.
+          {t('role.subtitle')}
         </p>
 
-        <div role="radiogroup" aria-label="Select your role" className="stagger mt-7 space-y-3">
-          {roles.map(({ id, icon: Icon, title, body, accent }) => {
+        <div role="radiogroup" aria-label={t('role.select')} className="stagger mt-7 space-y-3">
+          {roles.map(({ id, icon: Icon, titleKey, bodyKey, accent }) => {
             const active = picked === id
             const [text, bg, ring] = accent.split(' ')
             return (
@@ -66,8 +68,8 @@ export default function RoleSelect() {
                   <Icon size={21} strokeWidth={1.9} aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-md font-semibold text-ink-900">{title}</span>
-                  <span className="mt-1 block text-sm leading-relaxed text-ink-500">{body}</span>
+                  <span className="block text-md font-semibold text-ink-900">{t(titleKey)}</span>
+                  <span className="mt-1 block text-sm leading-relaxed text-ink-500">{t(bodyKey)}</span>
                 </span>
                 <span
                   className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition-colors ${
@@ -85,7 +87,7 @@ export default function RoleSelect() {
 
       <div className="safe-b gutter border-t border-ink-200 bg-surface py-3.5">
         <button type="button" onClick={proceed} className="btn-primary btn-block">
-          Continue
+          {t('role.continue')}
           <ArrowRight size={18} strokeWidth={2.2} aria-hidden />
         </button>
       </div>

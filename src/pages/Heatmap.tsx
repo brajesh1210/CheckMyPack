@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Layers, Info } from 'lucide-react'
 import { Screen, ScrollArea, AppBar } from '../components/UI'
 import BottomNav from '../components/BottomNav'
@@ -9,6 +10,7 @@ type Spot = PlottedHotspot & { city: string; n: number }
 const tierColor = { high: '#C62828', medium: '#B26B00', low: '#2E7D32' } as const
 
 export default function Heatmap() {
+  const { t } = useTranslation()
   const [spots, setSpots] = useState<Spot[]>([])
   const [live, setLive] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -36,13 +38,13 @@ export default function Heatmap() {
   return (
     <Screen>
       <AppBar
-        title="Enforcement map"
+        title={t('officer.mapTitle')}
         subtitle={
           loading
-            ? 'Loading reports'
+            ? t('officer.mapLoading')
             : live
-              ? 'Violations reported across all users'
-              : 'Violations from scans on this device'
+              ? t('officer.mapLive')
+              : t('officer.mapLocal')
         }
       />
 
@@ -50,7 +52,7 @@ export default function Heatmap() {
         {/* ------------------------------------------------------------- map */}
         <div className="gutter pt-4">
           <div className="relative overflow-hidden rounded-xl border border-ink-200 bg-info-soft/40">
-            <svg viewBox="0 0 100 105" className="block w-full" role="img" aria-label="Map of India with violation hotspots">
+            <svg viewBox="0 0 100 105" className="block w-full" role="img" aria-label={t('officer.mapAria')}>
               {/* stylised landmass — schematic, not a survey map */}
               <path
                 d="M34 12 L44 8 L54 13 L62 11 L70 17 L78 16 L84 24 L88 34 L83 41 L86 47 L79 52 L74 49 L72 56 L66 62 L60 74 L54 86 L48 96 L42 88 L38 78 L33 70 L27 64 L21 56 L17 47 L14 38 L18 30 L24 24 L28 16 Z"
@@ -89,7 +91,7 @@ export default function Heatmap() {
 
             {/* legend */}
             <div className="absolute bottom-2.5 left-2.5 rounded-lg bg-surface/95 px-2.5 py-2 shadow-sm backdrop-blur">
-              <p className="mb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-ink-500">Violation rate</p>
+              <p className="mb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-ink-500">{t('officer.violationRate')}</p>
               <ul className="space-y-1">
                 {[
                   ['high', '50%+ of scans'],
@@ -128,15 +130,15 @@ export default function Heatmap() {
         <section className="gutter pt-7">
           <div className="mb-3 flex items-center gap-2">
             <Layers size={16} className="text-ink-400" aria-hidden />
-            <h2 className="font-display text-md font-semibold">All locations</h2>
+            <h2 className="font-display text-md font-semibold">{t('officer.allLocations')}</h2>
           </div>
           <div className="card overflow-hidden">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="bg-ink-50 text-2xs uppercase tracking-[0.06em] text-ink-500">
-                  <th scope="col" className="px-4 py-2.5 font-semibold">City</th>
-                  <th scope="col" className="px-4 py-2.5 text-right font-semibold">Violations</th>
-                  <th scope="col" className="px-4 py-2.5 text-right font-semibold">Priority</th>
+                  <th scope="col" className="px-4 py-2.5 font-semibold">{t('officer.city')}</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-semibold">{t('home.violations')}</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-semibold">{t('officer.priority')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-200">
@@ -162,8 +164,7 @@ export default function Heatmap() {
             </table>
             {!loading && spots.length === 0 && (
               <p className="px-4 py-6 text-center text-sm text-ink-500">
-                No violations have been reported yet. Scans appear here once
-                they are filed.
+                {t('officer.noHotspots')}
               </p>
             )}
           </div>

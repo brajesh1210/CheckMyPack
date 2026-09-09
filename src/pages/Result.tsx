@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ShieldCheck, TriangleAlert, Check, X, Volume2, Square, Share2, FileText, ChevronRight,
@@ -11,6 +12,7 @@ import { speak, stopSpeaking, speechSupported, verdictScript } from '../lib/spee
 import { shareScan, shareReportPdf } from '../lib/share'
 
 export default function Result() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const { id } = useParams()
   const { scans, lastScanId, lang, voice, online } = useApp()
@@ -59,14 +61,14 @@ export default function Result() {
   if (!scan) {
     return (
       <Screen>
-        <AppBar back title="Scan result" />
+        <AppBar back title={t('result.title')} />
         <EmptyState
           icon={FileText}
-          title="No scan to show"
+          title={t('result.none')}
           body="This result is no longer stored on the device."
           action={
             <button type="button" onClick={() => nav('/app/scan')} className="btn-primary btn-sm">
-              Scan a pack
+              {t('result.scanAPack')}
             </button>
           }
         />
@@ -81,14 +83,14 @@ export default function Result() {
       <AppBar
         back
         onBack={() => nav('/app/home')}
-        title="Scan result"
+        title={t('result.title')}
         subtitle={scan.id}
         right={
           speechSupported() ? (
             <button
               type="button"
               onClick={toggleSpeak}
-              aria-label={speaking ? 'Stop reading aloud' : 'Read the verdict aloud'}
+              aria-label={speaking ? t('result.stopReading') : t('result.readAloud')}
               className={`grid h-11 w-11 place-items-center rounded-full transition-colors ${
                 speaking ? 'bg-brand-100 text-brand-700' : 'text-ink-600 hover:bg-ink-100'
               }`}
@@ -103,7 +105,7 @@ export default function Result() {
         {scan.expired && (
           <div className="flex items-center gap-2.5 bg-bad-base px-5 py-3 text-white" role="alert">
             <CalendarX size={18} strokeWidth={2.2} className="shrink-0" aria-hidden />
-            <p className="text-sm font-semibold">This product is past its expiry date.</p>
+            <p className="text-sm font-semibold">{t('result.expired')}</p>
           </div>
         )}
 
@@ -115,12 +117,12 @@ export default function Result() {
             </span>
             <div className="min-w-0 flex-1">
               <h1 className={`font-display text-2xl tracking-[-0.02em] ${bad ? 'text-bad-text' : 'text-ok-text'}`}>
-                {bad ? 'Violation found' : 'Compliant'}
+                {bad ? t('result.violation') : t('result.pass')}
               </h1>
               <p className={`mt-1 text-sm leading-relaxed ${bad ? 'text-bad-text/80' : 'text-ok-text/80'}`}>
                 {bad
                   ? `${violations.length} required ${violations.length === 1 ? 'declaration is' : 'declarations are'} missing or improperly printed.`
-                  : 'Every declaration required by law is present and legible.'}
+                  : t('result.allPresent')}
               </p>
             </div>
             <div className="shrink-0 text-center">
@@ -133,7 +135,7 @@ export default function Result() {
                 {scan.grade}
               </div>
               <div className={`mt-1 text-2xs font-semibold uppercase tracking-wider ${bad ? 'text-bad-text/70' : 'text-ok-text/70'}`}>
-                Grade
+                {t('result.grade')}
               </div>
             </div>
           </div>
@@ -155,9 +157,9 @@ export default function Result() {
 
         {/* annotated capture */}
         <section className="gutter pt-6">
-          <h2 className="font-display text-md font-semibold">On the label</h2>
+          <h2 className="font-display text-md font-semibold">{t('result.onLabel')}</h2>
           <p className="mt-1 text-sm text-ink-500">
-            {boxed.length ? 'Tap a box to see what was checked there.' : 'No text regions could be pinned to the image.'}
+            {boxed.length ? t('result.tapBox') : t('result.noBoxes')}
           </p>
 
           <div className="relative mt-3 overflow-hidden rounded-xl border border-ink-200 bg-ink-100">
@@ -200,7 +202,7 @@ export default function Result() {
             <p className="mt-2.5 flex items-center gap-2 text-xs text-ink-500">
               <Barcode size={14} className="shrink-0 text-ink-400" aria-hidden />
               Barcode {scan.barcode}
-              {!online && <span className="inline-flex items-center gap-1"><WifiOff size={11} aria-hidden /> not verified offline</span>}
+              {!online && <span className="inline-flex items-center gap-1"><WifiOff size={11} aria-hidden /> {t('result.notVerified')}</span>}
             </p>
           )}
         </section>
@@ -208,7 +210,7 @@ export default function Result() {
         {/* violations */}
         {violations.length > 0 && (
           <section className="gutter pt-7">
-            <h2 className="font-display text-md font-semibold">Cited violations</h2>
+            <h2 className="font-display text-md font-semibold">{t('result.citedViolations')}</h2>
             <ul className="mt-3 space-y-2.5">
               {violations.map((v) => (
                 <li key={v.id} className="rounded-xl border border-bad-soft bg-bad-soft/50 p-4">
@@ -235,7 +237,7 @@ export default function Result() {
 
         {/* full checklist */}
         <section className="gutter pt-7">
-          <h2 className="font-display text-md font-semibold">All checks</h2>
+          <h2 className="font-display text-md font-semibold">{t('result.allChecks')}</h2>
           <ul className="card mt-3 divide-y divide-ink-200 overflow-hidden">
             {scan.findings.map((f) => (
               <li key={f.id} className="flex items-center gap-3 px-4 py-3">
@@ -261,8 +263,8 @@ export default function Result() {
           <button type="button" onClick={() => nav(`/app/report/${scan.id}`)} className="card-interactive flex w-full items-center gap-3 p-4 text-left">
             <FileText size={19} strokeWidth={1.9} className="shrink-0 text-ink-500" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-md font-medium text-ink-900">Detailed report</span>
-              <span className="mt-0.5 block text-xs text-ink-500">Printable record with a verification QR</span>
+              <span className="block text-md font-medium text-ink-900">{t('result.detailedReport')}</span>
+              <span className="mt-0.5 block text-xs text-ink-500">{t('result.detailedReportSub')}</span>
             </span>
             <ChevronRight size={18} className="shrink-0 text-ink-300" aria-hidden />
           </button>
@@ -270,10 +272,10 @@ export default function Result() {
       </ScrollArea>
 
       <div className="safe-b gutter flex gap-2.5 border-t border-ink-200 bg-surface py-3.5">
-        <button type="button" onClick={() => nav('/app/scan')} className="btn-secondary" aria-label="Scan another pack">
+        <button type="button" onClick={() => nav('/app/scan')} className="btn-secondary" aria-label={t('result.scanAnother')}>
           <RotateCcw size={17} strokeWidth={2} aria-hidden />
         </button>
-        <button type="button" onClick={() => shareScan(scan)} className="btn-secondary" aria-label="Share summary">
+        <button type="button" onClick={() => shareScan(scan)} className="btn-secondary" aria-label={t('result.shareSummary')}>
           <Share2 size={17} strokeWidth={2} aria-hidden />
         </button>
         <button
@@ -290,11 +292,11 @@ export default function Result() {
         </button>
         {bad ? (
           <button type="button" onClick={() => nav(`/app/complaint?scan=${scan.id}`)} className="btn-danger flex-1">
-            Report it
+            {t('result.reportIt')}
           </button>
         ) : (
           <button type="button" onClick={() => nav('/app/home')} className="btn-primary flex-1">
-            Done
+            {t('result.done')}
           </button>
         )}
       </div>

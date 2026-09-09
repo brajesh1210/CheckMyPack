@@ -1,26 +1,28 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { Home, ScanLine, History, FileWarning, User, LayoutGrid, Map, ClipboardList, type LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useApp } from '../store/app'
 
-type Item = { to: string; label: string; icon: LucideIcon }
+type Item = { to: string; labelKey: string; icon: LucideIcon }
 
 const consumerNav: Item[] = [
-  { to: '/app/home', label: 'Home', icon: Home },
-  { to: '/app/scan', label: 'Scan', icon: ScanLine },
-  { to: '/app/history', label: 'History', icon: History },
-  { to: '/app/complaint', label: 'Report', icon: FileWarning },
-  { to: '/app/profile', label: 'Profile', icon: User },
+  { to: '/app/home', labelKey: 'nav.home', icon: Home },
+  { to: '/app/scan', labelKey: 'nav.scan', icon: ScanLine },
+  { to: '/app/history', labelKey: 'nav.history', icon: History },
+  { to: '/app/complaint', labelKey: 'nav.complaint', icon: FileWarning },
+  { to: '/app/profile', labelKey: 'nav.profile', icon: User },
 ]
 
 const officerNav: Item[] = [
-  { to: '/app/officer', label: 'Overview', icon: LayoutGrid },
-  { to: '/app/scan', label: 'Inspect', icon: ScanLine },
-  { to: '/app/heatmap', label: 'Map', icon: Map },
-  { to: '/app/inspections', label: 'Cases', icon: ClipboardList },
-  { to: '/app/profile', label: 'Profile', icon: User },
+  { to: '/app/officer', labelKey: 'officer.dashboard', icon: LayoutGrid },
+  { to: '/app/scan', labelKey: 'nav.scan', icon: ScanLine },
+  { to: '/app/heatmap', labelKey: 'nav.map', icon: Map },
+  { to: '/app/inspections', labelKey: 'nav.cases', icon: ClipboardList },
+  { to: '/app/profile', labelKey: 'nav.profile', icon: User },
 ]
 
 export default function BottomNav() {
+  const { t } = useTranslation()
   const role = useApp((s) => s.role)
   const { pathname } = useLocation()
   const items = role === 'officer' ? officerNav : consumerNav
@@ -31,7 +33,7 @@ export default function BottomNav() {
       className="safe-b sticky bottom-0 z-30 shrink-0 border-t border-ink-200 bg-surface/95 shadow-nav backdrop-blur-md"
     >
       <ul className="flex items-stretch">
-        {items.map(({ to, label, icon: Icon }) => {
+        {items.map(({ to, labelKey, icon: Icon }) => {
           const active = pathname === to
           return (
             <li key={to} className="flex-1">
@@ -58,7 +60,7 @@ export default function BottomNav() {
                     active ? 'font-semibold text-brand-700' : 'font-medium text-ink-500'
                   }`}
                 >
-                  {label}
+                  {t(labelKey)}
                 </span>
               </NavLink>
             </li>

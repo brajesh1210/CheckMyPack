@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Download, Share2, Scale, FileText } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, StatusPill, EmptyState } from '../components/UI'
@@ -42,6 +43,7 @@ function QRBlock({ seed }: { seed: string }) {
 }
 
 export default function DetailedReport() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const nav = useNavigate()
   const { scans, lastScanId } = useApp()
@@ -50,9 +52,9 @@ export default function DetailedReport() {
   if (!scan) {
     return (
       <Screen>
-        <AppBar back title="Detailed report" />
-        <EmptyState icon={FileText} title="Report unavailable" body="This scan is no longer stored on the device."
-          action={<button type="button" onClick={() => nav('/app/home')} className="btn-primary btn-sm">Go home</button>} />
+        <AppBar back title={t('result.detailedReport')} />
+        <EmptyState icon={FileText} title={t('report.unavailable')} body="This scan is no longer stored on the device."
+          action={<button type="button" onClick={() => nav('/app/home')} className="btn-primary btn-sm">{t('report.goHome')}</button>} />
       </Screen>
     )
   }
@@ -61,7 +63,7 @@ export default function DetailedReport() {
 
   return (
     <Screen>
-      <AppBar back title="Detailed report" subtitle={scan.id} />
+      <AppBar back title={t('result.detailedReport')} subtitle={scan.id} />
 
       <ScrollArea className="pb-6">
         {/* -------------------------------------------------------- letterhead */}
@@ -70,8 +72,8 @@ export default function DetailedReport() {
             <div className="flex items-center gap-2.5">
               <Mark size={30} className="text-brand-500" />
               <div>
-                <p className="font-display text-md font-semibold leading-tight">CheckMyPack</p>
-                <p className="text-2xs text-ink-500">Compliance verification record</p>
+                <p className="font-display text-md font-semibold leading-tight">{t('app.name')}</p>
+                <p className="text-2xs text-ink-500">{t('report.heading')}</p>
               </div>
             </div>
             <StatusPill state={scan.verdict} />
@@ -86,7 +88,7 @@ export default function DetailedReport() {
               ['Product', scan.productName],
               ['Scanned on', new Date(scan.createdAt).toLocaleString('en-IN')],
               ['Location', scan.place],
-              ['Compliance grade', `Grade ${scan.grade}`],
+              [t('report.complianceGrade'), `Grade ${scan.grade}`],
               ['Rule set', 'LMPC 2011 · FSSAI · GSR 881(E)'],
             ].map(([k, v]) => (
               <div key={k} className="flex items-baseline gap-4 px-4 py-3">
@@ -99,14 +101,14 @@ export default function DetailedReport() {
 
         {/* ---------------------------------------------------- declarations */}
         <section className="gutter pt-7">
-          <h2 className="font-display text-md font-semibold">Declaration audit</h2>
+          <h2 className="font-display text-md font-semibold">{t('report.declarationAudit')}</h2>
           <div className="mt-3 overflow-hidden rounded-xl border border-ink-200">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="bg-ink-50 text-2xs uppercase tracking-[0.06em] text-ink-500">
-                  <th scope="col" className="px-3.5 py-2.5 font-semibold">Declaration</th>
-                  <th scope="col" className="px-3.5 py-2.5 font-semibold">Value</th>
-                  <th scope="col" className="px-3.5 py-2.5 text-right font-semibold">Result</th>
+                  <th scope="col" className="px-3.5 py-2.5 font-semibold">{t('report.declaration')}</th>
+                  <th scope="col" className="px-3.5 py-2.5 font-semibold">{t('report.value')}</th>
+                  <th scope="col" className="px-3.5 py-2.5 text-right font-semibold">{t('landing.step3')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-200 bg-surface">
@@ -129,7 +131,7 @@ export default function DetailedReport() {
         {/* --------------------------------------------------------- statute */}
         {violations.length > 0 && (
           <section className="gutter pt-7">
-            <h2 className="font-display text-md font-semibold">Statutory references</h2>
+            <h2 className="font-display text-md font-semibold">{t('report.statutory')}</h2>
             <ul className="mt-3 space-y-2">
               {violations.map((i) => (
                 <li key={i.id} className="card flex gap-3 p-3.5">
@@ -151,9 +153,9 @@ export default function DetailedReport() {
               <QRBlock seed={scan.id} />
             </div>
             <div className="min-w-0">
-              <h2 className="text-md font-semibold text-ink-900">Verify this report</h2>
+              <h2 className="text-md font-semibold text-ink-900">{t('report.verifyTitle')}</h2>
               <p className="mt-1 text-sm leading-relaxed text-ink-500">
-                Scanning this code re-opens the record so an officer can confirm it was not altered.
+                {t('report.verifyNote')}
               </p>
             </div>
           </div>
@@ -168,11 +170,11 @@ export default function DetailedReport() {
       <div className="safe-b gutter flex gap-2.5 border-t border-ink-200 bg-surface py-3.5">
         <button type="button" className="btn-secondary flex-1">
           <Share2 size={17} strokeWidth={2} aria-hidden />
-          Share
+          {t('report.share')}
         </button>
         <button type="button" onClick={() => window.print()} className="btn-primary flex-1">
           <Download size={17} strokeWidth={2} aria-hidden />
-          Save PDF
+          {t('report.savePdf')}
         </button>
       </div>
     </Screen>

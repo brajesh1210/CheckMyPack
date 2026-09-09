@@ -1,27 +1,29 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Search, ShieldCheck, TriangleAlert, ScanLine, ChevronRight, ScanSearch, CloudOff, Trash2 } from 'lucide-react'
 import { Screen, ScrollArea, AppBar, StatusPill, EmptyState } from '../components/UI'
 import BottomNav from '../components/BottomNav'
 import { useApp } from '../store/app'
 
-const filters = ['All', 'Compliant', 'Violations', 'Retakes'] as const
+const filters = [['all','history.filterAll'],['compliant','history.filterCompliant'],['violations','history.filterViolations'],['retakes','history.filterRetakes']] as const
 
 export default function History() {
+  const { t } = useTranslation()
   const nav = useNavigate()
   const { scans, removeScan } = useApp()
   const [q, setQ] = useState('')
-  const [filter, setFilter] = useState<(typeof filters)[number]>('All')
+  const [filter, setFilter] = useState<'all' | 'compliant' | 'violations' | 'retakes'>('all')
 
   const list = useMemo(
     () =>
       scans.filter((s) => {
         const matchQ = s.productName.toLowerCase().includes(q.trim().toLowerCase()) || s.id.toLowerCase().includes(q.trim().toLowerCase())
         const matchF =
-          filter === 'All' ||
-          (filter === 'Violations' && s.verdict === 'VIOLATION') ||
-          (filter === 'Compliant' && s.verdict === 'PASS') ||
-          (filter === 'Retakes' && s.verdict === 'RETAKE')
+          filter === 'all' ||
+          (filter === 'violations' && s.verdict === 'VIOLATION') ||
+          (filter === 'compliant' && s.verdict === 'PASS') ||
+          (filter === 'retakes' && s.verdict === 'RETAKE')
         return matchQ && matchF
       }),
     [scans, q, filter],
@@ -31,7 +33,7 @@ export default function History() {
 
   return (
     <Screen>
-      <AppBar title="Scan history" subtitle={`${scans.length} stored on this device`} />
+      <AppBar title={t('history.title')} subtitle={`${scans.length} stored on this device`} />
 
       <ScrollArea className="pb-6">
         {scans.length > 0 && (
@@ -41,28 +43,28 @@ export default function History() {
               <input
                 type="search"
                 className="field pl-10"
-                placeholder="Search product or reference"
+                placeholder={t('history.search')}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                aria-label="Search scan history"
+                aria-label={t('history.ariaSearch')}
               />
             </div>
 
-            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto" role="tablist" aria-label="Filter scans">
-              {filters.map((f) => {
-                const active = filter === f
+            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto" role="tablist" aria-label={t('history.ariaFilter')}>
+              {filters.map(([value, labelKey]) => {
+                const active = filter === value
                 return (
                   <button
-                    key={f}
+                    key={value}
                     role="tab"
                     aria-selected={active}
                     type="button"
-                    onClick={() => setFilter(f)}
+                    onClick={() => setFilter(value)}
                     className={`min-h-[36px] shrink-0 rounded-full px-3.5 text-sm font-medium transition-colors ${
                       active ? 'bg-ink-900 text-white' : 'border border-ink-200 bg-surface text-ink-600 hover:border-ink-300 hover:text-ink-900'
                     }`}
                   >
-                    {f}
+                    {t(labelKey)}
                   </button>
                 )
               })}
@@ -82,11 +84,11 @@ export default function History() {
             <div className="card">
               <EmptyState
                 icon={ScanLine}
-                title="No scans yet"
+                title={t('home.noScans')}
                 body="Every pack you scan is saved here, including offline ones."
                 action={
                   <button type="button" onClick={() => nav('/app/scan')} className="btn-primary btn-sm">
-                    Scan a pack
+                    {t('result.scanAPack')}
                   </button>
                 }
               />
@@ -95,11 +97,11 @@ export default function History() {
             <div className="card">
               <EmptyState
                 icon={Search}
-                title="Nothing matches"
+                title={t('history.nothingMatches')}
                 body="Try a different search term or clear the filter."
                 action={
-                  <button type="button" onClick={() => { setQ(''); setFilter('All') }} className="btn-secondary btn-sm">
-                    Clear filters
+                  <button type="button" onClick={() => { setQ(''); setFilter('all') }} className="btn-secondary btn-sm">
+                    {t('history.clearFilters')}
                   </button>
                 }
               />
