@@ -13,9 +13,17 @@
  * Deploy:
  *   supabase secrets set GEMINI_API_KEY=...
  *   supabase functions deploy extract-label --no-verify-jwt
+ *
+ * Google retires model names on a few months' notice — gemini-2.0-flash was
+ * switched off on 1 June 2026, which is why this function began returning 502.
+ * So the model is read from a secret rather than being frozen in the code: if
+ * the current one is retired again, set GEMINI_MODEL and redeploy, no edit
+ * needed.
  */
 
-const GEMINI_MODEL = 'gemini-2.0-flash'
+/** Override with `supabase secrets set GEMINI_MODEL=...` when Google retires this one. */
+const DEFAULT_MODEL = 'gemini-3.5-flash'
+const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') || DEFAULT_MODEL
 const MAX_IMAGE_BYTES = 1_500_000 // ~1.1 MB of base64; the client sends <500 KB
 
 const CORS = {

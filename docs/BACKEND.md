@@ -276,7 +276,7 @@ Invoke-RestMethod `
 ```
 source model            fields
 ------ -----            ------
-gemini gemini-2.0-flash @{mrp=₹45.00; net_qty=200 g; expiry=12/2027; ...}
+gemini gemini-3.5-flash @{mrp=₹45.00; net_qty=200 g; expiry=12/2027; ...}
 ```
 
 **Bad** — `error: The reading service is unavailable.` Check why:
@@ -284,13 +284,33 @@ gemini gemini-2.0-flash @{mrp=₹45.00; net_qty=200 g; expiry=12/2027; ...}
 Look at the function's logs in the dashboard (project → **Logs → Edge
 Functions**).
 
-If the log shows `models/gemini-2.0-flash is not found`, edit `GEMINI_MODEL` at
-the top of `supabase/functions/extract-label/index.ts` to a current model
-(for example `gemini-2.5-flash`), then redeploy:
+### When Google retires a model
+
+Gemini model names are withdrawn a few months after Google announces it.
+`gemini-2.0-flash` was switched off on 1 June 2026; the function kept calling it
+and every scan came back 502, which the app reported as a retake.
+
+The model is therefore **not** frozen in the code. It is read from the
+`GEMINI_MODEL` secret, with `gemini-3.5-flash` as the default. To move to a new
+one:
 
 ```cmd
+supabase secrets set GEMINI_MODEL=gemini-3.8-flash
 supabase functions deploy extract-label --no-verify-jwt
 ```
+
+No code change, no rebuild of the app. Check what is current at
+<https://ai.google.dev/gemini-api/docs/models> before choosing; prefer a
+*Stable* model over a Preview one, and avoid anything with a published
+shutdown date.
+
+### Other errors worth knowing
+
+| Response | Meaning |
+| --- | --- |
+| `503 The extraction service is not configured` | `GEMINI_API_KEY` was never set — run `supabase secrets set GEMINI_API_KEY=...` and redeploy |
+| `502 The reading service is unavailable` | The Gemini call failed: retired model, bad key, or quota. Logs will say which |
+| `400 No image was supplied` | The request body had no `image` field |
 
 `test-packs/test-pack-violation.jpg` is the second fixture: it deliberately has
 no MRP and no customer care, so a healthy reader still returns fields but the
